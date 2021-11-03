@@ -21,6 +21,7 @@ router.get(callbackPath, passport.authenticate("discord"), (req, res) => {
 
 router.get("/logout", (req, res) => {
   req.logout();
+  return res.redirect(req.session.origin ?? "/");
 });
 
 export default router;
