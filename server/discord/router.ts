@@ -10,9 +10,10 @@ import {
 
 const router = Router();
 
+router.use(requireAuthenticated());
+
 router.get(
   "/guilds/list",
-  requireAuthenticated(),
   asyncHandler(async (req, res) => {
     const user = req.user as User;
 
@@ -29,13 +30,7 @@ router.get(
 
 router.get(
   "/user/current",
-  requireAuthenticated(),
   asyncHandler(async (req, res) => {
-    if (req.isUnauthenticated()) {
-      res.sendStatus(401);
-      return;
-    }
-
     const { id } = req.user as User;
     const user = await client.users.fetch(id);
     res.send(user);

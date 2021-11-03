@@ -2,7 +2,8 @@
   "compilerOptions": {
     "moduleResolution": "node",
     "target": "es2020",
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "typeRoots": ["types"]
   },
   "exclude": ["client"]
 }
