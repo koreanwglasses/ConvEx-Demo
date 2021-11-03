@@ -35,9 +35,9 @@ setupPassport();
 app.use(AuthRouter);
 app.use("/api", DiscordRouter);
 
-app.use(express.static(resolve(__dirname, "client/build")))
+app.use(express.static(resolve(__dirname, "client/build")));
 app.get("*", (req, res) => {
   res.sendFile(resolve(__dirname, "client/build/index.html"));
-})
+});
 
 export default app;

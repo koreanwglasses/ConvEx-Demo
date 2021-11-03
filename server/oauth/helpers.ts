@@ -12,13 +12,13 @@ export async function hasPermissions(
   channelId?: string
 ) {
   const guild = await client.guilds.fetch(guildId);
-  
+
   const [err, member] = await to(guild.members.fetch(userId));
 
-  if(err instanceof DiscordAPIError && err.message === "Unknown Member") {
+  if (err instanceof DiscordAPIError && err.message === "Unknown Member") {
     return false;
   }
-  if(err) throw err;
+  if (err) throw err;
 
   if (channelId) {
     return member.permissionsIn(channelId).has(permissions);
