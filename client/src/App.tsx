@@ -9,7 +9,7 @@ const App = () => {
         {process.env.NODE_ENV === "development" && (
           <Route
             exact
-            path={["/auth", "/logout"]}
+            path={["/auth", "/logout", "/invite"]}
             render={(props) =>
               `Redirecting to ${(window.location.href =
                 process.env.REACT_APP_BACKEND_HOST +

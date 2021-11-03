@@ -132,7 +132,7 @@ const AddToServerButton = () => {
     <Button
       variant="outlined"
       className={classes.button}
-      href={"/"}
+      href={"/invite"}
       target="_blank"
       rel="noopener noreferrer"
     >

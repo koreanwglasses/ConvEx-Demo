@@ -33,6 +33,10 @@ setupPassport();
 ////////////
 
 app.use(AuthRouter);
+app.get("/invite", (req, res) => {
+   const url = `https://discord.com/api/oauth2/authorize?client_id=${config.discord.clientID}&permissions=66560&scope=bot`;
+   res.redirect(url);
+})
 app.use("/api", DiscordRouter);
 
 app.use(express.static(resolve(__dirname, "client/build")));
