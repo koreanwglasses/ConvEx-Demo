@@ -1,18 +1,41 @@
-import { PermissionString, User } from "discord.js";
+import { to } from "await-to-js";
+import { DiscordAPIError, PermissionString, User } from "discord.js";
 import { Handler } from "express";
 import { client } from "../discord/bot";
 
-export async function hasPermission(
-  permission: PermissionString,
+const MODERATOR_ACCESS_PERMISSIONS = [];
+
+export async function hasPermissions(
+  permissions: PermissionString[],
   userId: string,
   guildId: string,
   channelId?: string
 ) {
   const guild = await client.guilds.fetch(guildId);
-  const member = await guild.members.fetch(userId);
+  
+  const [err, member] = await to(guild.members.fetch(userId));
 
-  if (channelId) return member.permissionsIn(channelId).has(permission);
-  else return member.permissions.has(permission);
+  if(err instanceof DiscordAPIError && err.message === "Unknown Member") {
+    return false;
+  }
+  if(err) throw err;
+
+  if (channelId) {
+    return member.permissionsIn(channelId).has(permissions);
+  } else return member.permissions.has(permissions);
+}
+
+export function hasModeratorAccess(
+  userId: string,
+  guildId: string,
+  channelId?: string
+) {
+  return hasPermissions(
+    MODERATOR_ACCESS_PERMISSIONS,
+    userId,
+    guildId,
+    channelId
+  );
 }
 
 export function requireAuthenticated(): Handler {
@@ -25,19 +48,21 @@ export function requireAuthenticated(): Handler {
   };
 }
 
-export function requirePermission(...permission: PermissionString[]): Handler {
+export function requirePermission(permissions: PermissionString[]): Handler {
   return (req, res, next) =>
     requireAuthenticated()(req, res, async () => {
       const { guildId, channelId = undefined } = req.body;
       const { id } = req.user as User;
 
-      for (const p of permission) {
-        if (!(await hasPermission(p, id, guildId, channelId))) {
-          res.sendStatus(401);
-          return;
-        }
+      if (await hasPermissions(permissions, id, guildId, channelId)) {
+        res.sendStatus(403);
+        return;
       }
 
       next();
     });
+}
+
+export function requireModeratorAccess() {
+  return requirePermission(MODERATOR_ACCESS_PERMISSIONS);
 }
