@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "nodemon -r dotenv/config index.ts",
-    "format": "prettier --ignore-path .gitignore --write ."
+    "format": "prettier --write ."
   },
   "devDependencies": {
     "@types/express": "^4.17.13",

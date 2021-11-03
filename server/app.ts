@@ -6,6 +6,7 @@ import createMemoryStore from "memorystore";
 import config from "./config";
 import passport from "passport";
 import { setupPassport } from "./oauth/middlewares";
+import { resolve } from "path";
 
 const app = express();
 
@@ -33,5 +34,10 @@ setupPassport();
 
 app.use(AuthRouter);
 app.use("/api", DiscordRouter);
+
+app.use(express.static(resolve(__dirname, "client/build")))
+app.get("*", (req, res) => {
+  res.sendFile(resolve(__dirname, "client/build/index.html"));
+})
 
 export default app;
