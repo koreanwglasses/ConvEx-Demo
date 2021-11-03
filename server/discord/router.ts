@@ -1,13 +1,12 @@
 import { Router } from "express";
-import { fetchUser, listGuilds } from "./model";
 import asyncHandler from "express-async-handler";
-import { User } from "discord.js";
+import { PermissionString, User } from "discord.js";
+import { client } from "./bot";
 
 const router = Router();
 
 router.get("/guilds/list", (req, res) => {
-  const guilds = listGuilds();
-  return res.send(guilds);
+  return res.send(client.guilds.cache);
 });
 
 router.get(
@@ -19,7 +18,7 @@ router.get(
     }
 
     const { id } = req.user as User;
-    const user = await fetchUser(id);
+    const user = await client.users.fetch(id);
     res.send(user);
   })
 );

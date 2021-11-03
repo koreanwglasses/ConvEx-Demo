@@ -1,10 +1,11 @@
 import express from "express";
 import DiscordRouter from "./discord/router";
+import AuthRouter from "./oauth/router";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import config from "./config";
 import passport from "passport";
-import * as auth from "./discord/auth";
+import { setupPassport } from "./oauth/middlewares";
 
 const app = express();
 
@@ -24,13 +25,13 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
-auth.setupPassport();
+setupPassport();
 
 ////////////
 // ROUTES //
 ////////////
 
-app.use(auth.router);
+app.use(AuthRouter);
 app.use("/api", DiscordRouter);
 
 export default app;
