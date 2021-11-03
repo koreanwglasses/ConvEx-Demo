@@ -13,6 +13,8 @@ import { Skeleton } from "@material-ui/lab";
 import { to } from "await-to-js";
 import React, { useEffect, useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
+import { User } from "discord.js";
+import { AsResponse } from "../utils";
 
 const useStyles = makeStyles((theme) => ({
   toolbarTitle: {
@@ -51,11 +53,16 @@ const Title = () => {
 };
 
 const UserNav = () => {
-  const [[err, user], setResult] = useState<[err?: Error | null, user?: any]>(
-    []
-  );
+  const [[err, user], setResult] = useState<
+    [err?: any, user?: AsResponse<User>]
+  >([]);
   useEffect(() => {
-    to(fetch("/api/user/current")).then(setResult);
+    (async () => {
+      const [err, response] = await to(fetch("/api/user/current"));
+      if (err) return setResult([err]);
+      if (!response?.ok) return setResult([response]);
+      return setResult([null, await response.json()]);
+    })();
   }, []);
 
   return (
@@ -69,7 +76,7 @@ const UserNav = () => {
         </>
       )}
 
-      {!user && <LoginButton />}
+      {err && <LoginButton />}
 
       {user && (
         <>
@@ -149,15 +156,17 @@ const DashboardButton = () => {
   );
 };
 
-const AvatarMenu = ({ user }: { user: any }) => {
+const AvatarMenu = ({ user }: { user: AsResponse<User> }) => {
   const classes = useStyles();
+
   const [menuAnchor, setMenuAnchor] = useState<Element | null>(null);
+
   return (
     <>
       <IconButton onClick={(e) => setMenuAnchor(e.currentTarget)} size="small">
         <Avatar
           alt={`${user.username}#${user.discriminator}`}
-          src={user.avatarURL}
+          src={user.avatarURL!}
           className={classes.avatar}
         ></Avatar>
       </IconButton>
