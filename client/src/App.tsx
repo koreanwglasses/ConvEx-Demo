@@ -1,29 +1,31 @@
 import React from "react";
-import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
-import Index from "./routes/index";
+import { Outlet } from "react-router-dom";
+
+import { CssBaseline, ThemeProvider } from "@material-ui/core";
+import { createTheme } from "@material-ui/core/styles";
+import { Header } from "./components/header";
+
+const theme = createTheme({
+  palette: {
+    type: "dark",
+    primary: {
+      main: "#2E303E",
+    },
+    secondary: {
+      main: "#F43E5C",
+      contrastText: "#fff",
+    },
+    background: { default: "#232530" },
+  },
+});
 
 const App = () => {
   return (
-    <Router>
-      <Switch>
-        {process.env.NODE_ENV === "development" && (
-          <Route
-            exact
-            path={["/auth", "/logout", "/invite"]}
-            render={(props) =>
-              `Redirecting to ${(window.location.href =
-                process.env.REACT_APP_BACKEND_HOST +
-                props.location.pathname +
-                "?origin=" +
-                window.location.origin)}...`
-            }
-          />
-        )}
-        <Route exact path="/">
-          <Index />
-        </Route>
-      </Switch>
-    </Router>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Header />
+      <Outlet />
+    </ThemeProvider>
   );
 };
 
