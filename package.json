@@ -1,8 +1,6 @@
 {
-  "name": "conversation-explorer",
-  "version": "1.0.0",
-  "description": "TBD",
+  "name": "convex-conversation-explorer",
+  "version": "0.0.1",
   "repository": "git@github.com:koreanwglasses/ConvEx-revision-1.git",
-  "author": "koreanwglasses <koreanwglasses@gmail.com>",
-  "license": "MIT"
+  "author": "koreanwglasses <koreanwglasses@gmail.com>"
 }
