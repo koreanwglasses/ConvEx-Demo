@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "repository": "git@github.com:koreanwglasses/ConvEx-revision-1.git",
   "author": "koreanwglasses <koreanwglasses@gmail.com>",
+  "engines": { "node" : "^16.6.0" },
   "scripts": {
     "dev:client": "cd client && yarn start",
     "dev:server": "cd server && yarn dev",
