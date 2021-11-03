@@ -2,15 +2,17 @@ import { Router } from "express";
 import asyncHandler from "express-async-handler";
 import { PermissionString, User } from "discord.js";
 import { client } from "./bot";
+import { requireAuthenticated, requirePermission } from "../oauth/helpers";
 
 const router = Router();
 
-router.get("/guilds/list", (req, res) => {
+router.get("/guilds/list", requireAuthenticated(), (req, res) => {
   return res.send(client.guilds.cache);
 });
 
 router.get(
   "/user/current",
+  requireAuthenticated(),
   asyncHandler(async (req, res) => {
     if (req.isUnauthenticated()) {
       res.sendStatus(401);
