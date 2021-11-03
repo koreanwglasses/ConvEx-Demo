@@ -6,8 +6,8 @@ const router = Router();
 router.get(
   "/auth",
   (req, res, next) => {
-    req.session.origin = req.body?.origin;
-    next()
+    req.session.origin = req.query?.origin as string;
+    next();
   },
   passport.authenticate("discord")
 );

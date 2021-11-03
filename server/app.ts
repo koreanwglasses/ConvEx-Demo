@@ -20,7 +20,7 @@ app.use(
     store: new MemoryStore({ checkPeriod: 86400000 }),
     secret: config.express.sessionSecret,
     resave: false,
-    saveUninitialized: false 
+    saveUninitialized: false,
   })
 );
 
