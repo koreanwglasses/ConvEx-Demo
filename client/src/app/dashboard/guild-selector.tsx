@@ -38,9 +38,9 @@ const GuildSelector = () => {
       )}
 
       {guilds && guilds.length && (
-        <Box sx={{display: "flex" , gap: 2}}>
+        <Box sx={{ display: "flex", gap: 2 }}>
           {guilds.map((guild) => (
-              <GuildCard guild={guild} key={guild.id} />
+            <GuildCard guild={guild} key={guild.id} />
           ))}
         </Box>
       )}
@@ -50,7 +50,7 @@ const GuildSelector = () => {
 
 const GuildCard = ({ guild }: { guild: GuildData }) => {
   return (
-    <Card sx={{width: 176}}>
+    <Card sx={{ width: 176 }}>
       <CardActionArea
         href={`/dashboard/${guild.id}`}
         LinkComponent={RouterLink}
