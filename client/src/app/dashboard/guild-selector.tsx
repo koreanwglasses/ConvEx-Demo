@@ -1,6 +1,7 @@
 import {
   Alert,
   Avatar,
+  Box,
   Card,
   CardActionArea,
   CardContent,
@@ -37,13 +38,11 @@ const GuildSelector = () => {
       )}
 
       {guilds && guilds.length && (
-        <Grid container spacing={2}>
+        <Box sx={{display: "flex" , gap: 2}}>
           {guilds.map((guild) => (
-            <Grid item xs={2} key={guild.id}>
-              <GuildCard guild={guild} />
-            </Grid>
+              <GuildCard guild={guild} key={guild.id} />
           ))}
-        </Grid>
+        </Box>
       )}
     </Container>
   );
@@ -51,7 +50,7 @@ const GuildSelector = () => {
 
 const GuildCard = ({ guild }: { guild: GuildData }) => {
   return (
-    <Card>
+    <Card sx={{width: 176}}>
       <CardActionArea
         href={`/dashboard/${guild.id}`}
         LinkComponent={RouterLink}
