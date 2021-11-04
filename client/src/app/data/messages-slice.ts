@@ -67,7 +67,7 @@ export const Messages = createSlice({
       const slice = state[key(guildId, channelId)] ?? {
         messages: [],
       };
-      slice.pending = true;
+      slice.pending = false;
       slice.lastErr = err;
       if (messages) {
         slice.messages = mergeMessages(slice.messages, messages);
@@ -84,7 +84,9 @@ export const { startFetchingMessages, finishFetchingMessages } =
 export const fetchOlder =
   (guildId: string, channelId: string, limit?: number): AppThunk =>
   async (dispatch, getState) => {
-    const slice = getState().messages[key(guildId, channelId)];
+    const slice = getState().messages[key(guildId, channelId)] ?? {
+      messages: [],
+    };
     if (slice.pending) return;
 
     const oldest = slice.messages.length
@@ -93,9 +95,9 @@ export const fetchOlder =
 
     dispatch(startFetchingMessages({ guildId, channelId }));
     const [err, messages] = await fetchJSON(
-      `/api/messages/${guildId}/${channelId}/list`,
+      `/api/messages/${guildId}/${channelId}/fetch`,
       {
-        before: oldest,
+        before: oldest?.id,
         limit,
       }
     );
@@ -105,16 +107,18 @@ export const fetchOlder =
 export const fetchNewer =
   (guildId: string, channelId: string, limit?: number): AppThunk =>
   async (dispatch, getState) => {
-    const slice = getState().messages[key(guildId, channelId)];
+    const slice = getState().messages[key(guildId, channelId)] ?? {
+      messages: [],
+    };
     if (slice.pending) return;
 
     const newest = slice.messages.length ? slice.messages[0] : undefined;
 
     dispatch(startFetchingMessages({ guildId, channelId }));
     const [err, messages] = await fetchJSON(
-      `/api/messages/${guildId}/${channelId}/list`,
+      `/api/messages/${guildId}/${channelId}/fetch`,
       {
-        after: newest,
+        after: newest?.id,
         limit,
       }
     );

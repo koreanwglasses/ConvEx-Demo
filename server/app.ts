@@ -14,6 +14,8 @@ const app = express();
 // MIDDLEWARES //
 /////////////////
 
+app.use(express.json())
+
 const MemoryStore = createMemoryStore(session);
 app.use(
   session({

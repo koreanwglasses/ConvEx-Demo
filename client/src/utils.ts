@@ -11,6 +11,7 @@ export const fetchJSON = async <T = any>(url: string, body?: any) => {
     fetch(
       url,
       body && {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },

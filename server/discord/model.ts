@@ -38,7 +38,7 @@ const toMessageData = (message: Message): MessageData =>
   message && {
     id: message.id,
     content: message.content,
-    createdTimestamp: message.createdTimestamp
+    createdTimestamp: message.createdTimestamp,
   };
 
 export const fetchGuilds = async () =>
@@ -47,10 +47,18 @@ export const fetchGuilds = async () =>
 export const fetchUser = async (id: string) =>
   toUserData(await client.users.fetch(id));
 
-export const fetchGuildTextChannels = async (guildId: string) =>
-  (await (await client.guilds.fetch(guildId)).channels.fetch())
-    .filter((channel) => channel.type === "GUILD_TEXT")
+export const fetchGuildTextChannels = async (guildId: string) => {
+  const guild = await client.guilds.fetch(guildId);
+  const bot = await guild.members.fetch(client.user);
+
+  return (await guild.channels.fetch())
+    .filter(
+      (channel) =>
+        channel.type === "GUILD_TEXT" &&
+        bot.permissionsIn(channel).has(["READ_MESSAGE_HISTORY", "VIEW_CHANNEL"])
+    )
     .map(toChannelData);
+};
 
 export const fetchMessages = async (
   guildId: string,

@@ -55,14 +55,14 @@ router.get(
   })
 );
 
-router.get(
+router.post(
   "/messages/:guildId/:channelId/fetch",
   requireModeratorAccess(),
   asyncHandler(async (req, res) => {
     const { guildId, channelId } = req.params;
     const options = req.body as ChannelLogsQueryOptions;
 
-    const messages = fetchMessages(guildId, channelId, options);
+    const messages = await fetchMessages(guildId, channelId, options);
 
     res.send(messages);
   })
