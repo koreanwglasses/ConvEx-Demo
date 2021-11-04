@@ -1,23 +1,25 @@
 import React, { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 
-import { CssBaseline, ThemeProvider } from "@material-ui/core";
-import { createTheme } from "@material-ui/core/styles";
 import { Navbar } from "./components/navbar";
 import { useAppDispatch } from "./hooks";
 import { fetchCurrentUser } from "../data/current-user-slice";
+import { createTheme, ThemeProvider } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
 
 const theme = createTheme({
   palette: {
-    type: "dark",
+    mode: "dark",
     primary: {
-      main: "#2E303E",
+      main: "#bab3d2",
     },
     secondary: {
       main: "#F43E5C",
-      contrastText: "#fff",
     },
-    background: { default: "#232530" },
+    background: {
+      default: "#232530",
+      paper: "#323441",
+    },
   },
 });
 

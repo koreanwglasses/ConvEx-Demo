@@ -1,15 +1,3 @@
-import {
-  AppBar,
-  Avatar,
-  Box,
-  Button,
-  IconButton,
-  makeStyles,
-  Menu,
-  MenuItem,
-  Toolbar,
-} from "@material-ui/core";
-import { Skeleton } from "@material-ui/lab";
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { User } from "discord.js";
@@ -17,8 +5,19 @@ import { APIData } from "../../utils";
 import { useAppSelector } from "../hooks";
 import { logout, selectCurrentUser } from "../../data/current-user-slice";
 import { useDispatch } from "react-redux";
+import { makeStyles } from "@mui/styles";
+import MuiAppBar from "@mui/material/AppBar";
+import Toolbar from "@mui/material/Toolbar";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import Skeleton from "@mui/material/Skeleton";
+import IconButton from "@mui/material/IconButton";
+import Avatar from "@mui/material/Avatar";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import { styled } from "@mui/system";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = makeStyles({
   toolbarTitleContainer: {
     flexGrow: 1,
   },
@@ -27,12 +26,10 @@ const useStyles = makeStyles((theme) => ({
     color: "white",
     textDecoration: "none",
   },
-  button: {
-    margin: theme.spacing(1, 1),
-  },
-  avatar: {
-    margin: theme.spacing(1, 1),
-  },
+});
+
+const AppBar = styled(MuiAppBar)(({ theme }) => ({
+  zIndex: (theme.zIndex as any).drawer + 1,
 }));
 
 export const Navbar = () => (
@@ -87,49 +84,28 @@ const Actions = () => {
 };
 
 export const LoginButton = () => {
-  const classes = useStyles();
   return (
-    <Button
-      color="secondary"
-      variant="contained"
-      href={"/auth"}
-      className={classes.button}
-    >
+    <Button color="secondary" variant="contained" href={"/auth"} sx={{ m: 1 }}>
       Login with Discord
     </Button>
   );
 };
 
 const DashboardPlaceholder = () => {
-  const classes = useStyles();
   return (
-    <Skeleton
-      variant="rect"
-      width={120}
-      height={35}
-      className={classes.button}
-    />
+    <Skeleton variant="rectangular" sx={{ m: 1, width: 120, height: 35 }} />
   );
 };
 
 const AvatarPlaceholder = () => {
-  const classes = useStyles();
-  return (
-    <Skeleton
-      variant="circle"
-      width={40}
-      height={40}
-      className={classes.avatar}
-    />
-  );
+  return <Skeleton variant="circular" width={40} height={40} sx={{ m: 1 }} />;
 };
 
 const AddToServerButton = () => {
-  const classes = useStyles();
   return (
     <Button
       variant="outlined"
-      className={classes.button}
+      sx={{ m: 1 }}
       href={"/invite"}
       target="_blank"
       rel="noopener noreferrer"
@@ -140,14 +116,13 @@ const AddToServerButton = () => {
 };
 
 const DashboardButton = () => {
-  const classes = useStyles();
   return (
     <Button
       color="secondary"
       variant="contained"
       component={RouterLink}
       to={"/dashboard"}
-      className={classes.button}
+      sx={{ m: 1 }}
     >
       Dashboard
     </Button>
@@ -155,7 +130,6 @@ const DashboardButton = () => {
 };
 
 const AvatarMenu = ({ user }: { user: APIData<User> }) => {
-  const classes = useStyles();
   const dispatch = useDispatch();
 
   const [menuAnchor, setMenuAnchor] = useState<Element | null>(null);
@@ -166,7 +140,7 @@ const AvatarMenu = ({ user }: { user: APIData<User> }) => {
         <Avatar
           alt={`${user.username}#${user.discriminator}`}
           src={user.avatarURL!}
-          className={classes.avatar}
+          sx={{ m: 1 }}
         ></Avatar>
       </IconButton>
       <Menu

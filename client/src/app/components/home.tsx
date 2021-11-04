@@ -1,16 +1,10 @@
-import { Container, makeStyles, Typography } from "@material-ui/core";
+import Container from "@mui/material/Container";
+import Typography from "@mui/material/Typography";
 import React from "react";
 
-const useStyles = makeStyles((theme) => ({
-  heroContent: {
-    padding: theme.spacing(8, 0, 6),
-  },
-}));
-
 const Home = () => {
-  const classes = useStyles();
   return (
-    <Container maxWidth="sm" className={classes.heroContent}>
+    <Container maxWidth="sm" sx={{ mt: 8, mb: 6 }}>
       <Typography component="h1" variant="h2" align="center" gutterBottom>
         <b>Conv</b>ersation <b>Ex</b>plorer
       </Typography>

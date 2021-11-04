@@ -1,8 +1,7 @@
 import { createSlice } from "@reduxjs/toolkit";
-import to from "await-to-js";
 import { User } from "discord.js";
 import type { RootState, AppThunk } from "../app/store";
-import { APIData } from "../utils";
+import { APIData, fetchJSON } from "../utils";
 
 // Define a type for the slice state
 interface CurrentUserState {
@@ -24,6 +23,7 @@ export const currentUserSlice = createSlice({
     startFetchingCurrentUser(state) {
       state.userData = undefined;
       state.pending = true;
+      state.lastError = undefined;
     },
     finishFetchingCurrentUser(
       state,
@@ -47,15 +47,9 @@ export const {
 } = currentUserSlice.actions;
 
 export const fetchCurrentUser = (): AppThunk => async (dispatch) => {
-  dispatch(startFetchingUserData);
-
-  const [err0, res] = await to(fetch("/api/user/current"));
-  if (err0) return dispatch(finishFetchingUserData({ err: err0 }));
-  if (!res?.ok) return dispatch(finishFetchingUserData({ err: res }));
-
-  const [err1, userData] = await to(res.json());
-  if (err1) return dispatch(finishFetchingUserData({ err: err1 }));
-  return dispatch(finishFetchingUserData({ userData }));
+  dispatch(startFetchingUserData());
+  const [err, userData] = await fetchJSON("/api/user/current");
+  dispatch(finishFetchingUserData({ err, userData }));
 };
 
 export const selectCurrentUser = (state: RootState) => state.currentUser;
