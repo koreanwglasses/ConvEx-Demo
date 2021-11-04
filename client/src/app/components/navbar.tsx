@@ -10,16 +10,22 @@ import {
   Toolbar,
 } from "@material-ui/core";
 import { Skeleton } from "@material-ui/lab";
-import { to } from "await-to-js";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { User } from "discord.js";
-import { AsResponse } from "../utils";
+import { APIData } from "../../utils";
+import { useAppSelector } from "../hooks";
+import { logout, selectCurrentUser } from "../../data/current-user-slice";
+import { useDispatch } from "react-redux";
 
 const useStyles = makeStyles((theme) => ({
-  toolbarTitle: {
+  toolbarTitleContainer: {
     flexGrow: 1,
+  },
+  toolbarTitle: {
     fontSize: 36,
+    color: "white",
+    textDecoration: "none",
   },
   button: {
     margin: theme.spacing(1, 1),
@@ -29,11 +35,11 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export const Header = () => (
+export const Navbar = () => (
   <AppBar position="static">
     <Toolbar>
       <Title />
-      <UserNav />
+      <Actions />
     </Toolbar>
   </AppBar>
 );
@@ -41,47 +47,39 @@ export const Header = () => (
 const Title = () => {
   const classes = useStyles();
   return (
-    <div className={classes.toolbarTitle}>
-      <Box fontWeight={700} component="span">
-        CONV
-      </Box>
-      <Box fontWeight={200} component="span">
-        EX
-      </Box>
+    <div className={classes.toolbarTitleContainer}>
+      <a className={classes.toolbarTitle} href={"/"}>
+        <Box fontWeight={700} component="span">
+          CONV
+        </Box>
+        <Box fontWeight={200} component="span">
+          EX
+        </Box>
+      </a>
     </div>
   );
 };
 
-const UserNav = () => {
-  const [[err, user], setResult] = useState<
-    [err?: any, user?: AsResponse<User>]
-  >([]);
-  useEffect(() => {
-    (async () => {
-      const [err, response] = await to(fetch("/api/user/current"));
-      if (err) return setResult([err]);
-      if (!response?.ok) return setResult([response]);
-      return setResult([null, await response.json()]);
-    })();
-  }, []);
+const Actions = () => {
+  const { pending, userData } = useAppSelector(selectCurrentUser);
 
   return (
     <>
       <AddToServerButton />
 
-      {!err && !user && (
+      {pending && (
         <>
           <DashboardPlaceholder />
           <AvatarPlaceholder />
         </>
       )}
 
-      {err && <LoginButton />}
+      {!pending && !userData && <LoginButton />}
 
-      {user && (
+      {userData && (
         <>
           <DashboardButton />
-          <AvatarMenu user={user} />
+          <AvatarMenu user={userData} />
         </>
       )}
     </>
@@ -156,8 +154,9 @@ const DashboardButton = () => {
   );
 };
 
-const AvatarMenu = ({ user }: { user: AsResponse<User> }) => {
+const AvatarMenu = ({ user }: { user: APIData<User> }) => {
   const classes = useStyles();
+  const dispatch = useDispatch();
 
   const [menuAnchor, setMenuAnchor] = useState<Element | null>(null);
 
@@ -176,7 +175,11 @@ const AvatarMenu = ({ user }: { user: AsResponse<User> }) => {
         keepMounted
         onClose={() => setMenuAnchor(null)}
       >
-        <MenuItem component={"a"} href={"/logout"}>
+        <MenuItem
+          component={"a"}
+          href={"/logout"}
+          onClick={() => dispatch(logout())}
+        >
           Logout
         </MenuItem>
       </Menu>

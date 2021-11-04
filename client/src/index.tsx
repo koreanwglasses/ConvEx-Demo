@@ -1,10 +1,12 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import App from "./App";
+import App from "./app/app";
 import reportWebVitals from "./reportWebVitals";
-import Dashboard from "./components/dashboard";
-import Home from "./components/home";
+import Dashboard from "./app/dashboard/dashboard";
+import Home from "./app/components/home";
+import { Provider } from "react-redux";
+import { store } from "./app/store";
 
 const DevRedirect = ({ path }: { path: string }) => {
   return (
@@ -23,22 +25,23 @@ const DevRedirect = ({ path }: { path: string }) => {
 };
 
 ReactDOM.render(
-  <BrowserRouter>
-    <Routes>
-      <Route path="/" element={<App />}>
-        <Route index element={<Home />} />
-        <Route path="dashboard" element={<Dashboard />} />
-      </Route>
-      {process.env.NODE_ENV === "development" && (
-        <>
-          <Route path="/auth" element={<DevRedirect path="/auth" />} />
-          <Route path="/invite" element={<DevRedirect path="/invite" />} />
-          <Route path="/logout" element={<DevRedirect path="/logout" />} />
-        </>
-      )}
-    </Routes>
-  </BrowserRouter>,
-
+  <Provider store={store}>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<App />}>
+          <Route index element={<Home />} />
+          <Route path="dashboard" element={<Dashboard />} />
+        </Route>
+        {process.env.NODE_ENV === "development" && (
+          <>
+            <Route path="/auth" element={<DevRedirect path="/auth" />} />
+            <Route path="/invite" element={<DevRedirect path="/invite" />} />
+            <Route path="/logout" element={<DevRedirect path="/logout" />} />
+          </>
+        )}
+      </Routes>
+    </BrowserRouter>
+  </Provider>,
   document.getElementById("root")
 );
 
