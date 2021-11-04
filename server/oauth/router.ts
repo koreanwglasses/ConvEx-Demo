@@ -16,12 +16,13 @@ export const callbackPath = "/return";
 router.get(callbackPath, passport.authenticate("discord"), (req, res) => {
   if (req.isAuthenticated()) {
     return res.redirect(`${req.session.origin ?? ""}/dashboard`);
-  } else return res.sendStatus(401);
+  } 
+  res.sendStatus(401);
 });
 
 router.get("/logout", (req, res) => {
   req.logout();
-  return res.redirect(req.session.origin ?? "/");
+  res.redirect(req.session.origin ?? "/");
 });
 
 export default router;

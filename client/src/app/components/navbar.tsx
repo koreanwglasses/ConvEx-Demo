@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { useAppSelector } from "../hooks";
-import { logout, selectCurrentUser } from "../../data/current-user-slice";
+import { logout, selectCurrentUser } from "../data/current-user-slice";
 import { useDispatch } from "react-redux";
 import { makeStyles } from "@mui/styles";
 import MuiAppBar from "@mui/material/AppBar";

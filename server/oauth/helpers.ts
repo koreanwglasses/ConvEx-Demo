@@ -22,7 +22,8 @@ export async function hasPermissions(
 
   if (channelId) {
     return member.permissionsIn(channelId).has(permissions);
-  } else return member.permissions.has(permissions);
+  } 
+  return member.permissions.has(permissions);
 }
 
 export function hasModeratorAccess(
@@ -41,8 +42,7 @@ export function hasModeratorAccess(
 export function requireAuthenticated(): Handler {
   return (req, res, next) => {
     if (req.isUnauthenticated()) {
-      res.sendStatus(401);
-      return;
+      return res.sendStatus(401);
     }
     next();
   };
@@ -51,15 +51,13 @@ export function requireAuthenticated(): Handler {
 export function requirePermission(permissions: PermissionString[]): Handler {
   return (req, res, next) =>
     requireAuthenticated()(req, res, async () => {
-      const { guildId, channelId = undefined } = req.body;
+      const { guildId, channelId = undefined } = req.params;
       const { id } = req.user as User;
 
       if (await hasPermissions(permissions, id, guildId, channelId)) {
-        res.sendStatus(403);
-        return;
+        return next();
       }
-
-      next();
+      res.sendStatus(403);
     });
 }
 

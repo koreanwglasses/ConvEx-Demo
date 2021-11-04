@@ -1,18 +1,20 @@
 import { createSlice } from "@reduxjs/toolkit";
-import type { RootState, AppThunk } from "../app/store";
-import { fetchJSON } from "../utils";
-import { UserData } from "../common/api-data-types";
+import type { RootState, AppThunk } from "../store";
+import { fetchJSON } from "../../utils";
+import { UserData } from "../../common/api-data-types";
 
 // Define a type for the slice state
 interface CurrentUserState {
   pending: boolean;
   userData?: UserData;
   lastError?: any;
+  isValid: boolean;
 }
 
 // Define the initial state using that type
 const initialState: CurrentUserState = {
   pending: false,
+  isValid: false,
 };
 
 export const currentUserSlice = createSlice({
@@ -24,6 +26,7 @@ export const currentUserSlice = createSlice({
       state.userData = undefined;
       state.pending = true;
       state.lastError = undefined;
+      state.isValid = false;
     },
     finishFetchingCurrentUser(
       state,
@@ -32,6 +35,7 @@ export const currentUserSlice = createSlice({
       state.lastError = action.payload.err;
       state.userData = action.payload.userData;
       state.pending = false;
+      state.isValid = true;
     },
     logout(state) {
       state.userData = undefined;
@@ -46,11 +50,17 @@ export const {
   logout,
 } = currentUserSlice.actions;
 
-export const fetchCurrentUser = (): AppThunk => async (dispatch) => {
-  dispatch(startFetchingUserData());
-  const [err, userData] = await fetchJSON("/api/user/current");
-  dispatch(finishFetchingUserData({ err, userData }));
-};
+export const fetchCurrentUser =
+  (invalidate = false): AppThunk =>
+  async (dispatch, getState) => {
+    const state = getState().currentUser;
+    if (state.pending) return;
+    if (!invalidate && state.isValid) return;
+
+    dispatch(startFetchingUserData());
+    const [err, userData] = await fetchJSON("/api/user/current");
+    dispatch(finishFetchingUserData({ err, userData }));
+  };
 
 export const selectCurrentUser = (state: RootState) => state.currentUser;
 

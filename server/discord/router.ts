@@ -31,7 +31,7 @@ router.get(
 );
 
 router.get(
-  "/guild/:guildId/channels",
+  "/channels/:guildId/list",
   requireModeratorAccess(),
   asyncHandler(async (req, res) => {
     const user = req.user as User;
@@ -54,7 +54,7 @@ router.get(
   "/user/current",
   asyncHandler(async (req, res) => {
     const { id } = req.user as User;
-    const user = fetchUser(id);
+    const user = await fetchUser(id);
     res.send(user);
   })
 );

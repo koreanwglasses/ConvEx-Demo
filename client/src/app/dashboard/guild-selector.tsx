@@ -10,7 +10,7 @@ import {
   Typography,
 } from "@mui/material";
 import { GuildData } from "../../common/api-data-types";
-import { selectGuilds } from "../../data/guilds-slice";
+import { selectGuilds } from "../data/guilds-slice";
 import { RouterLink } from "../components/ui/router-link-component";
 import { useAppSelector } from "../hooks";
 

@@ -1,12 +1,14 @@
 import { AnyAction, configureStore, ThunkAction } from "@reduxjs/toolkit";
 import thunk, { ThunkDispatch } from "redux-thunk";
-import currentUser from "../data/current-user-slice";
-import guilds from "../data/guilds-slice";
+import currentUser from "./data/current-user-slice";
+import guilds from "./data/guilds-slice";
+import channels from "./data/channels-slice";
 
 export const store = configureStore({
   reducer: {
     currentUser,
     guilds,
+    channels,
   },
   middleware: [thunk] as const,
 });
