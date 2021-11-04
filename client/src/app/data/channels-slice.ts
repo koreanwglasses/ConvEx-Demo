@@ -5,19 +5,16 @@ import { fetchJSON } from "../../utils";
 
 // Define a type for the slice state
 interface ChannelsState {
-  channelsByGuild: Record<
-    string,
-    {
-      pending: boolean;
-      lastError?: any;
-      channelsData?: Record<string, ChannelData>;
-      isValid: boolean;
-    }
-  >;
+  [guildId: string]: {
+    pending: boolean;
+    lastError?: any;
+    channelsData?: Record<string, ChannelData>;
+    isValid: boolean;
+  };
 }
 
 // Define the initial state using that type
-const initialState: ChannelsState = { channelsByGuild: {} };
+const initialState: ChannelsState = {};
 
 export const Channels = createSlice({
   name: "counter",
@@ -26,7 +23,7 @@ export const Channels = createSlice({
   reducers: {
     startFetchingChannels(state, action: { payload: { guildId: string } }) {
       const { guildId } = action.payload;
-      state.channelsByGuild[guildId] = { pending: true, isValid: false };
+      state[guildId] = { pending: true, isValid: false };
     },
     finishFetchingChannels(
       state,
@@ -35,7 +32,7 @@ export const Channels = createSlice({
       }
     ) {
       const { guildId } = action.payload;
-      state.channelsByGuild[guildId] = {
+      state[guildId] = {
         lastError: action.payload.err,
         channelsData:
           action.payload.channels &&
@@ -55,7 +52,7 @@ export const { startFetchingChannels, finishFetchingChannels } =
 export const fetchChannels =
   (guildId: string, invalidate = false): AppThunk =>
   async (dispatch, getState) => {
-    const state = getState().channels.channelsByGuild[guildId] ?? {
+    const state = getState().channels[guildId] ?? {
       pending: false,
       isValid: false,
     };
@@ -68,13 +65,13 @@ export const fetchChannels =
   };
 
 export const selectChannels = (guildId: string) => (state: RootState) =>
-  state.channels.channelsByGuild[guildId] ?? {
+  state.channels[guildId] ?? {
     pending: false,
     isValid: false,
   };
 
 export const selectChannelById =
   (guildId: string, channelId: string) => (state: RootState) =>
-    state.channels.channelsByGuild[guildId]?.channelsData?.[channelId];
+    state.channels[guildId]?.channelsData?.[channelId];
 
 export default Channels.reducer;

@@ -15,3 +15,9 @@ export interface ChannelData {
   id: string;
   name: string;
 }
+
+export interface MessageData {
+  id: string;
+  content: string;
+  createdTimestamp: number;
+}

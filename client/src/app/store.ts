@@ -3,12 +3,14 @@ import thunk, { ThunkDispatch } from "redux-thunk";
 import currentUser from "./data/current-user-slice";
 import guilds from "./data/guilds-slice";
 import channels from "./data/channels-slice";
+import messages from "./data/messages-slice";
 
 export const store = configureStore({
   reducer: {
     currentUser,
     guilds,
     channels,
+    messages,
   },
   middleware: [thunk] as const,
 });

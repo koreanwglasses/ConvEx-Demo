@@ -22,7 +22,7 @@ export async function hasPermissions(
 
   if (channelId) {
     return member.permissionsIn(channelId).has(permissions);
-  } 
+  }
   return member.permissions.has(permissions);
 }
 

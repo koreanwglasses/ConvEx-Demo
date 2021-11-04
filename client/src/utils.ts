@@ -1,7 +1,23 @@
 import { to } from "await-to-js";
 
-export const fetchJSON = async <T = any>(url: string) => {
-  const [err0, res] = await to(fetch(url));
+const removeUndefined = (obj: any) => {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([k, v]) => typeof v !== "undefined")
+  );
+};
+
+export const fetchJSON = async <T = any>(url: string, body?: any) => {
+  const [err0, res] = await to(
+    fetch(
+      url,
+      body && {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(removeUndefined(body)),
+      }
+    )
+  );
   if (err0) return [err0] as const;
   if (!res?.ok) return [res] as const;
 
