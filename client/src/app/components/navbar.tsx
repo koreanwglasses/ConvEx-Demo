@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { User } from "discord.js";
-import { APIData } from "../../utils";
 import { useAppSelector } from "../hooks";
 import { logout, selectCurrentUser } from "../../data/current-user-slice";
 import { useDispatch } from "react-redux";
@@ -16,6 +14,7 @@ import Avatar from "@mui/material/Avatar";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { styled } from "@mui/system";
+import { UserData } from "../../common/api-data-types";
 
 const useStyles = makeStyles({
   toolbarTitleContainer: {
@@ -129,7 +128,7 @@ const DashboardButton = () => {
   );
 };
 
-const AvatarMenu = ({ user }: { user: APIData<User> }) => {
+const AvatarMenu = ({ user }: { user: UserData }) => {
   const dispatch = useDispatch();
 
   const [menuAnchor, setMenuAnchor] = useState<Element | null>(null);

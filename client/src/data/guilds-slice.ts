@@ -1,13 +1,13 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { Guild } from "discord.js";
 import type { RootState, AppThunk } from "../app/store";
-import { APIData, fetchJSON } from "../utils";
+import { GuildData } from "../common/api-data-types";
+import { fetchJSON } from "../utils";
 
 // Define a type for the slice state
 interface GuildsState {
   pending: boolean;
   lastError?: any;
-  guildsData?: Record<string, APIData<Guild>>;
+  guildsData?: Record<string, GuildData>;
 }
 
 // Define the initial state using that type
@@ -27,7 +27,7 @@ export const Guilds = createSlice({
     },
     finishFetchingGuilds(
       state,
-      action: { payload: { guilds?: APIData<Guild>[]; err?: any } }
+      action: { payload: { guilds?: GuildData[]; err?: any } }
     ) {
       state.lastError = action.payload.err;
       state.guildsData = action.payload.guilds

@@ -1,12 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { User } from "discord.js";
 import type { RootState, AppThunk } from "../app/store";
-import { APIData, fetchJSON } from "../utils";
+import { fetchJSON } from "../utils";
+import { UserData } from "../common/api-data-types";
 
 // Define a type for the slice state
 interface CurrentUserState {
   pending: boolean;
-  userData?: APIData<User>;
+  userData?: UserData;
   lastError?: any;
 }
 
@@ -27,7 +27,7 @@ export const currentUserSlice = createSlice({
     },
     finishFetchingCurrentUser(
       state,
-      action: { payload: { userData?: APIData<User>; err?: any } }
+      action: { payload: { userData?: UserData; err?: any } }
     ) {
       state.lastError = action.payload.err;
       state.userData = action.payload.userData;

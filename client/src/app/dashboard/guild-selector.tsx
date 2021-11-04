@@ -9,10 +9,8 @@ import {
   Grid,
   Typography,
 } from "@mui/material";
-import { Guild } from "discord.js";
-import { Link } from "react-router-dom";
+import { GuildData } from "../../common/api-data-types";
 import { selectGuilds } from "../../data/guilds-slice";
-import { APIData } from "../../utils";
 import { RouterLink } from "../components/ui/router-link-component";
 import { useAppSelector } from "../hooks";
 
@@ -51,7 +49,7 @@ const GuildSelector = () => {
   );
 };
 
-const GuildCard = ({ guild }: { guild: APIData<Guild> }) => {
+const GuildCard = ({ guild }: { guild: GuildData }) => {
   return (
     <Card>
       <CardActionArea
