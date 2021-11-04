@@ -15,7 +15,7 @@ router.get(
 export const callbackPath = "/return";
 router.get(callbackPath, passport.authenticate("discord"), (req, res) => {
   if (req.isAuthenticated()) {
-    return res.redirect(req.session.origin ?? "/");
+    return res.redirect(`${req.session.origin ?? ""}/dashboard`);
   } else return res.sendStatus(401);
 });
 
