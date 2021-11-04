@@ -1,14 +1,12 @@
 import {
   Alert,
   Avatar,
-  Box,
   Card,
   CardActionArea,
   CardContent,
   CircularProgress,
   Container,
   Grid,
-  Skeleton,
   Typography,
 } from "@mui/material";
 import { Guild } from "discord.js";
