@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "nodemon -r dotenv/config index.ts",
+    "serve": "ts-node -r dotenv/config index.ts",
     "format": "prettier --write ."
   },
   "nodemonConfig": {

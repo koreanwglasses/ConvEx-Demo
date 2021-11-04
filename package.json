@@ -12,7 +12,9 @@
     "dev": "concurrently npm:dev:client npm:dev:server",
     "format:client": "cd client && yarn format",
     "format:server": "cd server && yarn format",
-    "format": "yarn format:client && yarn format:server"
+    "format": "yarn format:client && yarn format:server",
+    "build": "cd client && yarn build",
+    "deploy": "cd server && yarn serve"
   },
   "devDependencies": {
     "concurrently": "^6.3.0"
