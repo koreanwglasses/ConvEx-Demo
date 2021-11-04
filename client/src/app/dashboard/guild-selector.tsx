@@ -10,12 +10,16 @@ import {
   Typography,
 } from "@mui/material";
 import { Guild } from "discord.js";
+import { Link } from "react-router-dom";
 import { selectGuilds } from "../../data/guilds-slice";
 import { APIData } from "../../utils";
+import { RouterLink } from "../components/ui/router-link-component";
 import { useAppSelector } from "../hooks";
 
 const GuildSelector = () => {
-  const { guilds, pending, lastError } = useAppSelector(selectGuilds);
+  const { guildsData, pending, lastError } = useAppSelector(selectGuilds);
+  const guilds = guildsData ? Object.values(guildsData) : undefined;
+
   return (
     <Container maxWidth="lg">
       <Typography variant="h4" sx={{ mt: 4 }} gutterBottom>
@@ -50,7 +54,10 @@ const GuildSelector = () => {
 const GuildCard = ({ guild }: { guild: APIData<Guild> }) => {
   return (
     <Card>
-      <CardActionArea href={`/dashboard/${guild.id}`}>
+      <CardActionArea
+        href={`/dashboard/${guild.id}`}
+        LinkComponent={RouterLink}
+      >
         <CardContent sx={{ textAlign: "center" }}>
           <Avatar
             alt={guild.name}

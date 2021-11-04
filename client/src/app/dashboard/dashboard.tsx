@@ -5,7 +5,11 @@ import { useAppDispatch, useAppSelector } from "../hooks";
 
 const Dashboard = () => {
   const dispatch = useAppDispatch();
-  const { pending, guilds, lastError } = useAppSelector(selectGuilds);
+  const {
+    pending,
+    guildsData: guilds,
+    lastError,
+  } = useAppSelector(selectGuilds);
 
   useEffect(() => {
     if (!pending && !guilds && !lastError) {

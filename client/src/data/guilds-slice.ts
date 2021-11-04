@@ -7,7 +7,7 @@ import { APIData, fetchJSON } from "../utils";
 interface GuildsState {
   pending: boolean;
   lastError?: any;
-  guilds?: APIData<Guild>[];
+  guildsData?: Record<string, APIData<Guild>>;
 }
 
 // Define the initial state using that type
@@ -22,7 +22,7 @@ export const Guilds = createSlice({
   reducers: {
     startFetchingGuilds(state) {
       state.lastError = undefined;
-      state.guilds = undefined;
+      state.guildsData = undefined;
       state.pending = true;
     },
     finishFetchingGuilds(
@@ -30,7 +30,11 @@ export const Guilds = createSlice({
       action: { payload: { guilds?: APIData<Guild>[]; err?: any } }
     ) {
       state.lastError = action.payload.err;
-      state.guilds = action.payload.guilds;
+      state.guildsData = action.payload.guilds
+        ? Object.fromEntries(
+            action.payload.guilds.map((guild) => [guild.id, guild])
+          )
+        : undefined;
       state.pending = false;
     },
   },
@@ -45,5 +49,8 @@ export const fetchGuilds = (): AppThunk => async (dispatch) => {
 };
 
 export const selectGuilds = (state: RootState) => state.guilds;
+
+export const selectGuildById = (id: string) => (state: RootState) =>
+  state.guilds.guildsData?.[id];
 
 export default Guilds.reducer;

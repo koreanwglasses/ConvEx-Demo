@@ -8,6 +8,7 @@ import Home from "./app/components/home";
 import { Provider } from "react-redux";
 import { store } from "./app/store";
 import GuildSelector from "./app/dashboard/guild-selector";
+import GuildOverview from "./app/dashboard/guild-overview";
 
 const DevRedirect = ({ path }: { path: string }) => {
   return (
@@ -33,6 +34,7 @@ ReactDOM.render(
           <Route index element={<Home />} />
           <Route path="dashboard" element={<Dashboard />}>
             <Route index element={<GuildSelector />} />
+            <Route path=":guildId" element={<GuildOverview />} />
           </Route>
         </Route>
         {process.env.NODE_ENV === "development" && (
