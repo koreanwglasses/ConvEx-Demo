@@ -3,6 +3,7 @@ import { useParams } from "react-router";
 import { selectGuildById, selectGuilds } from "../../data/guilds-slice";
 import { useAppSelector } from "../hooks";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { RouterLink } from "../components/ui/router-link-component";
 
 const GuildOverview = () => {
   const { guildId } = useParams();
@@ -10,7 +11,7 @@ const GuildOverview = () => {
   const guildData = useAppSelector(selectGuildById(guildId!));
   return (
     <>
-      <Link href="/dashboard">
+      <Link href="/dashboard" component={RouterLink}>
         <ArrowBackIcon fontSize="small" sx={{ mb: -0.5 }} />
         Back to Dashboard
       </Link>
