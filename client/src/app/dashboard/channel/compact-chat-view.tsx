@@ -62,6 +62,7 @@ export const CompactChatView = ({
           display: "flex",
           flexFlow: "column-reverse",
           gap: 1,
+          pb: 1
         }}
       >
         {messageGroups?.map((group) => (
