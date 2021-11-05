@@ -11,7 +11,6 @@ import {
   setInitialOffset,
 } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
-import { SxProps } from "@mui/system";
 
 export const CompactChatView = ({
   guildId,
