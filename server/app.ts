@@ -1,5 +1,6 @@
 import express from "express";
 import DiscordRouter from "./discord/router";
+import AnalysisRouter from "./analysis/router";
 import AuthRouter from "./oauth/router";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -40,6 +41,7 @@ app.get("/invite", (req, res) => {
   res.redirect(url);
 });
 app.use("/api", DiscordRouter);
+app.use("/api", AnalysisRouter);
 
 app.use(express.static(resolve(__dirname, "client/build")));
 app.get("*", (req, res) => {

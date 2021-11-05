@@ -8,13 +8,14 @@ interface GuildsState {
   pending: boolean;
   lastError?: any;
   guildsData?: Record<string, GuildData>;
-  isValid: boolean;
+  valid: boolean;
 }
 
 // Define the initial state using that type
 const initialState: GuildsState = {
   pending: false,
-  isValid: false,
+  valid: false,
+  guildsData: {},
 };
 
 export const Guilds = createSlice({
@@ -24,33 +25,34 @@ export const Guilds = createSlice({
   reducers: {
     startFetchingGuilds(state) {
       state.lastError = undefined;
-      state.guildsData = undefined;
+      state.guildsData = {};
       state.pending = true;
     },
     finishFetchingGuilds(
       state,
       action: { payload: { guilds?: GuildData[]; err?: any } }
     ) {
-      state.lastError = action.payload.err;
       state.guildsData =
         action.payload.guilds &&
         Object.fromEntries(
           action.payload.guilds.map((guild) => [guild.id, guild])
         );
+
+      state.lastError = action.payload.err;
       state.pending = false;
-      state.isValid = true;
+      state.valid = true;
     },
   },
 });
 
-export const { startFetchingGuilds, finishFetchingGuilds } = Guilds.actions;
+const { startFetchingGuilds, finishFetchingGuilds } = Guilds.actions;
 
 export const fetchGuilds =
   (invalidate = false): AppThunk =>
   async (dispatch, getState) => {
     const state = getState().guilds;
     if (state.pending) return;
-    if (!invalidate && state.isValid) return;
+    if (!invalidate && state.valid) return;
 
     dispatch(startFetchingGuilds());
     const [err, guilds] = await fetchJSON("/api/guilds/list");

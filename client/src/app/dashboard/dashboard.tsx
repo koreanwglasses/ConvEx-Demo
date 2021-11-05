@@ -6,20 +6,20 @@ import { useAppDispatch, useAppSelector } from "../hooks";
 
 const Dashboard = () => {
   const dispatch = useAppDispatch();
-  const { guildId } = useParams();
 
   {
-    const { isValid } = useAppSelector(selectGuilds);
+    const { valid: isValid } = useAppSelector(selectGuilds);
 
     useEffect(() => {
-      if (!guildId && !isValid) {
+      if (!isValid) {
         dispatch(fetchGuilds());
       }
-    }, [dispatch, isValid, guildId]);
+    }, [dispatch, isValid]);
   }
 
   {
-    const { isValid } = useAppSelector(selectChannels(guildId!));
+    const { guildId } = useParams();
+    const { valid: isValid } = useAppSelector(selectChannels(guildId!));
 
     useEffect(() => {
       if (guildId && !isValid) {

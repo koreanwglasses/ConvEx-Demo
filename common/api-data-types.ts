@@ -1,3 +1,5 @@
+import type { MessageType } from "discord.js";
+
 export interface GuildData {
   id: string;
   name: string;
@@ -11,6 +13,13 @@ export interface UserData {
   avatarURL: string;
 }
 
+export interface MemberData {
+  id: string;
+  user: UserData;
+  displayAvatarURL: string;
+  displayHexColor: string;
+}
+
 export interface ChannelData {
   id: string;
   name: string;
@@ -19,5 +28,17 @@ export interface ChannelData {
 export interface MessageData {
   id: string;
   content: string;
+  cleanContent: string;
   createdTimestamp: number;
+  authorID: string;
+  type: MessageType;
+  embeds: EmbedData[];
+  attachments: { [id: string]: AttachmentData };
+}
+
+export interface EmbedData {}
+export interface AttachmentData {}
+
+export interface AnalysisData {
+  overallToxicity: number;
 }

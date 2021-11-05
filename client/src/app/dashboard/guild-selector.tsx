@@ -7,7 +7,6 @@ import {
   CardContent,
   CircularProgress,
   Container,
-  Grid,
   Typography,
 } from "@mui/material";
 import { GuildData } from "../../common/api-data-types";

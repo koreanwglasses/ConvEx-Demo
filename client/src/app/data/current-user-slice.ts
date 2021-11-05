@@ -8,13 +8,13 @@ interface CurrentUserState {
   pending: boolean;
   userData?: UserData;
   lastError?: any;
-  isValid: boolean;
+  valid: boolean;
 }
 
 // Define the initial state using that type
 const initialState: CurrentUserState = {
   pending: false,
-  isValid: false,
+  valid: false,
 };
 
 export const currentUserSlice = createSlice({
@@ -26,7 +26,7 @@ export const currentUserSlice = createSlice({
       state.userData = undefined;
       state.pending = true;
       state.lastError = undefined;
-      state.isValid = false;
+      state.valid = false;
     },
     finishFetchingCurrentUser(
       state,
@@ -35,7 +35,7 @@ export const currentUserSlice = createSlice({
       state.lastError = action.payload.err;
       state.userData = action.payload.userData;
       state.pending = false;
-      state.isValid = true;
+      state.valid = true;
     },
     logout(state) {
       state.userData = undefined;
@@ -44,22 +44,21 @@ export const currentUserSlice = createSlice({
   },
 });
 
-export const {
-  startFetchingCurrentUser: startFetchingUserData,
-  finishFetchingCurrentUser: finishFetchingUserData,
-  logout,
-} = currentUserSlice.actions;
+const { startFetchingCurrentUser, finishFetchingCurrentUser, logout } =
+  currentUserSlice.actions;
+
+export { logout };
 
 export const fetchCurrentUser =
   (invalidate = false): AppThunk =>
   async (dispatch, getState) => {
     const state = getState().currentUser;
     if (state.pending) return;
-    if (!invalidate && state.isValid) return;
+    if (!invalidate && state.valid) return;
 
-    dispatch(startFetchingUserData());
-    const [err, userData] = await fetchJSON("/api/user/current");
-    dispatch(finishFetchingUserData({ err, userData }));
+    dispatch(startFetchingCurrentUser());
+    const [err, userData] = await fetchJSON("/api/users/current");
+    dispatch(finishFetchingCurrentUser({ err, userData }));
   };
 
 export const selectCurrentUser = (state: RootState) => state.currentUser;

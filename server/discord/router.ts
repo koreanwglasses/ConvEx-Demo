@@ -1,7 +1,6 @@
 import { Router } from "express";
 import asyncHandler from "express-async-handler";
 import { ChannelLogsQueryOptions, User } from "discord.js";
-import { client } from "./bot";
 import {
   hasModeratorAccess,
   requireAuthenticated,
@@ -10,6 +9,7 @@ import {
 import {
   fetchGuilds,
   fetchGuildTextChannels,
+  fetchMember,
   fetchMessages,
   fetchUser,
 } from "./model";
@@ -69,11 +69,21 @@ router.post(
 );
 
 router.get(
-  "/user/current",
+  "/users/current",
   asyncHandler(async (req, res) => {
     const { id } = req.user as User;
     const user = await fetchUser(id);
     res.send(user);
+  })
+);
+
+router.get(
+  "/members/:guildId/:memberId",
+  requireModeratorAccess(),
+  asyncHandler(async (req, res) => {
+    const { guildId, memberId } = req.params;
+    const member = await fetchMember(guildId, memberId);
+    res.send(member);
   })
 );
 

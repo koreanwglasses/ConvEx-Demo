@@ -78,8 +78,7 @@ export const Messages = createSlice({
   },
 });
 
-export const { startFetchingMessages, finishFetchingMessages } =
-  Messages.actions;
+const { startFetchingMessages, finishFetchingMessages } = Messages.actions;
 
 export const fetchOlder =
   (guildId: string, channelId: string, limit?: number): AppThunk =>

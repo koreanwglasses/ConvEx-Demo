@@ -9,7 +9,7 @@ interface ChannelsState {
     pending: boolean;
     lastError?: any;
     channelsData?: Record<string, ChannelData>;
-    isValid: boolean;
+    valid: boolean;
   };
 }
 
@@ -23,7 +23,7 @@ export const Channels = createSlice({
   reducers: {
     startFetchingChannels(state, action: { payload: { guildId: string } }) {
       const { guildId } = action.payload;
-      state[guildId] = { pending: true, isValid: false };
+      state[guildId] = { pending: true, valid: false };
     },
     finishFetchingChannels(
       state,
@@ -40,24 +40,23 @@ export const Channels = createSlice({
             action.payload.channels.map((guild) => [guild.id, guild])
           ),
         pending: false,
-        isValid: true,
+        valid: true,
       };
     },
   },
 });
 
-export const { startFetchingChannels, finishFetchingChannels } =
-  Channels.actions;
+const { startFetchingChannels, finishFetchingChannels } = Channels.actions;
 
 export const fetchChannels =
   (guildId: string, invalidate = false): AppThunk =>
   async (dispatch, getState) => {
     const state = getState().channels[guildId] ?? {
       pending: false,
-      isValid: false,
+      valid: false,
     };
     if (state.pending) return;
-    if (!invalidate && state.isValid) return;
+    if (!invalidate && state.valid) return;
 
     dispatch(startFetchingChannels({ guildId }));
     const [err, channels] = await fetchJSON(`/api/channels/${guildId}/list`);
@@ -67,7 +66,7 @@ export const fetchChannels =
 export const selectChannels = (guildId: string) => (state: RootState) =>
   state.channels[guildId] ?? {
     pending: false,
-    isValid: false,
+    valid: false,
   };
 
 export const selectChannelById =

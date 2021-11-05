@@ -1,16 +1,17 @@
-import { Container, Link, Typography } from "@mui/material";
+import { Box, Link, Typography } from "@mui/material";
 import { useParams } from "react-router";
 import { selectGuildById, selectGuilds } from "../data/guilds-slice";
 import { useAppSelector } from "../hooks";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { RouterLink } from "../components/ui/router-link-component";
 import { selectChannels } from "../data/channels-slice";
-import { CondensedChannelView } from "./channel-view";
+import { CondensedChannelView } from "./channel/channel-view";
 
 const GuildOverview = () => {
   const { guildId } = useParams();
   const { pending: guildPending, lastError: guildLastError } =
     useAppSelector(selectGuilds);
+
   const guildData = useAppSelector(selectGuildById(guildId!));
 
   const {
@@ -23,25 +24,38 @@ const GuildOverview = () => {
 
   return (
     <>
-      <Link href="/dashboard" component={RouterLink}>
+      <Link href="/dashboard" component={RouterLink} sx={{ mt: 1 }}>
         <ArrowBackIcon fontSize="small" sx={{ mb: -0.5 }} />
         Back to Dashboard
       </Link>
-      <Container sx={{ mt: 1 }} maxWidth="lg">
-        {guildData && <Typography variant="h5">{guildData.name}</Typography>}
+      <Box sx={{ m: 1 }}>
+        {guildData && (
+          <Typography variant="h5" gutterBottom>
+            {guildData.name}
+          </Typography>
+        )}
         {(guildPending || channelsPending) && "Loading..."}
         {(guildLastError || channelsLastError) && "Something went wrong"}
 
-        {channels &&
-          guildId &&
-          channels.map((channel) => (
-            <CondensedChannelView
-              key={channel.id}
-              channelId={channel.id}
-              guildId={guildId}
-            />
-          ))}
-      </Container>
+        {channels && guildId && (
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 2,
+              justifyContent: "center",
+            }}
+          >
+            {channels.map((channel) => (
+              <CondensedChannelView
+                key={channel.id}
+                channelId={channel.id}
+                guildId={guildId}
+              />
+            ))}
+          </Box>
+        )}
+      </Box>
     </>
   );
 };

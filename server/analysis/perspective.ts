@@ -1,7 +1,7 @@
 import Perspective from "perspective-api-client";
 import config from "../config";
 
-let client: Perspective;
+export let perspective: Perspective;
 
 export function init() {
   const apiKey = config.perspective.apiKey;
@@ -11,5 +11,5 @@ export function init() {
         "variable PERSPECTIVE_API_KEY to a valid key."
     );
 
-  client = new Perspective({ apiKey: config.perspective.apiKey });
+  perspective = new Perspective({ apiKey: config.perspective.apiKey });
 }

@@ -1,5 +1,5 @@
 import * as DiscordBot from "./discord/bot";
-import * as PerspectiveClient from "./perspective/client";
+import * as PerspectiveClient from "./analysis/perspective";
 import app from "./app";
 import config from "./config";
 
