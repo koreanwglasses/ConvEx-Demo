@@ -53,11 +53,11 @@ export const CondensedChannelView = ({
       }}
       ref={ref}
     >
-      <Typography variant="h6" gutterBottom sx={{ m: 1 }}>
+      <Typography variant="h6" gutterBottom sx={{ m: 1, fontSize: 16 }}>
         #{channel && channel.name}
       </Typography>
 
-      <Paper sx={{ height: 400, px: 1 }} elevation={0}>
+      <Paper sx={{ height: 400, pl: 1 }} elevation={0}>
         {messages && channel && (
           <CompactChatView
             messages={messages}

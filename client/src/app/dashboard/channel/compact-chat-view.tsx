@@ -9,6 +9,7 @@ import {
   selectInitialOffsets,
   setInitialOffset,
 } from "../../viz-scroller/viz-scroller-slice";
+import * as d3 from "d3";
 
 export const CompactChatView = ({
   guildId,
@@ -103,7 +104,7 @@ const CompactMessageGroup = ({
         alt={member?.user.username}
         sx={{ width: 24, height: 24, mr: 1, mt: 0.5 }}
       />
-      <Box sx={{ display: "flex", flexFlow: "column" }}>
+      <Box sx={{ display: "flex", flexFlow: "column", flexGrow: 1 }}>
         <Box sx={{ display: "flex", mb: 0.25 }}>
           <Typography
             variant="subtitle2"
@@ -169,13 +170,25 @@ const CompactMessageView = ({
   const { analysis } = useAppSelector(
     selectAnalysis(guildId, channelId, message.id)
   );
+  const { overallToxicity = 0 } = analysis ?? {};
+
+  const toxicityColor = d3.color(d3.interpolateYlOrRd(overallToxicity))!;
+  toxicityColor.opacity = overallToxicity;
 
   const hasEmbed = message.embeds.length;
   const hasAttachment = Object.values(message.attachments).length;
 
   return (
-    <Box sx={{ wordBreak: "break-word" }} ref={ref}>
-      <br />
+    <Box
+      sx={{
+        wordBreak: "break-word",
+        backgroundColor: toxicityColor.toString(),
+        fontSize: 14,
+        pl: 0.5,
+        pr:1
+      }}
+      ref={ref}
+    >
       {hasEmbed || hasAttachment ? (
         <>
           <em style={{ opacity: 0.6, fontSize: 10 }}>
