@@ -64,6 +64,16 @@ export const CompactChatView = ({
           gap: 1,
         }}
       >
+        {messageGroups?.map((group) => (
+          <CompactMessageGroup
+            messages={group}
+            groupKey={groupKey}
+            channelId={channelId}
+            guildId={guildId}
+            key={group[0].id}
+          />
+        ))}
+
         {!reachedBeginning && (
           <Box
             sx={{
@@ -77,15 +87,6 @@ export const CompactChatView = ({
             <CircularProgress />
           </Box>
         )}
-        {messageGroups?.map((group) => (
-          <CompactMessageGroup
-            messages={group}
-            groupKey={groupKey}
-            channelId={channelId}
-            guildId={guildId}
-            key={group[0].id}
-          />
-        ))}
       </Box>
     </VizScroller>
   );
