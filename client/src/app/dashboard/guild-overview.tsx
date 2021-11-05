@@ -24,10 +24,12 @@ const GuildOverview = () => {
 
   return (
     <>
-      <Link href="/dashboard" component={RouterLink} sx={{ mt: 1 }}>
-        <ArrowBackIcon fontSize="small" sx={{ mb: -0.5 }} />
-        Back to Dashboard
-      </Link>
+      <Box sx={{ mt: 1 }}>
+        <Link href="/dashboard" component={RouterLink}>
+          <ArrowBackIcon fontSize="small" sx={{ mb: -0.5 }} />
+          Back to Guilds
+        </Link>
+      </Box>
       <Box sx={{ m: 1 }}>
         {guildData && (
           <Typography variant="h5" gutterBottom>
