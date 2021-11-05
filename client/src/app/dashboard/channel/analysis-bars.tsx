@@ -8,7 +8,13 @@ import {
   selectVizScrollerGroup,
 } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { selectBatchAnalysis } from "../../data/analyses-slice";
 
 export const AnalysisBars = ({
@@ -64,23 +70,23 @@ export const AnalysisBars = ({
     const svg = d3.select(svgRef.current);
     const barsG = svg.append("g");
     return { svg, barsG };
-  },[])
+  }, []);
   const selections = useRef<ReturnType<typeof init>>();
 
   useLayoutEffect(() => {
-    if ( !data || !width || !initialOffsets) return;
+    if (!data || !width || !initialOffsets) return;
     if (!selections.current && !(selections.current = init())) return;
 
     const barHeight = 20;
 
     const x = d3.scaleLinear().domain([0, 1]).range([0, width]);
-    const y = (id: string) => height*3+initialOffsets(id)+offset;
+    const y = (id: string) => height * 3 + initialOffsets(id) + offset;
 
     const { barsG } = selections.current;
 
     barsG
       .selectAll("rect")
-      .data(data)
+      .data(data.filter(([id]) => initialOffsets(id)))
       .join("rect")
       .attr("x", x(0))
       .attr("width", ([, analysis]) => x(analysis ?? 0) - x(0))
@@ -97,7 +103,7 @@ export const AnalysisBars = ({
       sx={{ flexBasis: 300, flexGrow: 1, position: "relative" }}
       ref={containerRef}
     >
-      <svg width={width} height={height*3} ref={svgRef} />
+      <svg width={width} height={height * 3} ref={svgRef} />
       {!messages && (
         <Box
           sx={{
