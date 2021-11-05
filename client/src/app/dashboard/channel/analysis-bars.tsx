@@ -111,8 +111,8 @@ export const AnalysisBars = ({
             justifyContent: "center",
             alignItems: "center",
             height,
-            width: containerRef.current?.clientWidth,
-            mb: 1,
+            width,
+            minWidth: 300,
             position: "absolute",
           }}
         >
