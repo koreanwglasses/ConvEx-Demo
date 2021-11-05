@@ -1,7 +1,13 @@
-import { ExpandLess, ExpandMore } from "@mui/icons-material";
-import { IconButton, Paper, Typography } from "@mui/material";
+import { ExpandLess, ExpandMore, PushPinOutlined } from "@mui/icons-material";
+import {
+  Card,
+  CardActionArea,
+  IconButton,
+  Paper,
+  Typography,
+} from "@mui/material";
 import { Box } from "@mui/system";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { selectChannelById } from "../../data/channels-slice";
 import { useAppSelector } from "../../hooks";
 import { ChannelVizGroup } from "./channel-viz-group";
@@ -16,10 +22,15 @@ export const ChannelCard = ({
 }) => {
   const channel = useAppSelector(selectChannelById(guildId, channelId));
 
+  const [loaded, setLoaded] = useState(false);
   const [showViz, setShowViz] = useState(false);
 
+  useEffect(() => {
+    if (showViz && !loaded) setLoaded(true);
+  }, [showViz, loaded]);
+
   return (
-    <Paper
+    <Card
       sx={{
         width: 300,
         display: "flex",
@@ -27,13 +38,26 @@ export const ChannelCard = ({
         justifyContent: "space-between",
       }}
     >
-      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-        <Typography variant="h6" gutterBottom sx={{ m: 1, fontSize: 16 }}>
-          #{channel && channel.name}
-        </Typography>
+      <Box sx={{ display: "flex", alignItems: "center" }}>
+        <CardActionArea
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            flexGrow: 1,
+            alignItems: "center",
+          }}
+          onClick={() => {
+            setShowViz(!showViz);
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ m: 1, fontSize: 16 }}>
+            #{channel && channel.name}
+          </Typography>
+          {showViz ? <ExpandLess /> : <ExpandMore />}
+        </CardActionArea>
         <Box>
-          <IconButton onClick={() => setShowViz(!showViz)}>
-            {showViz ? <ExpandLess /> : <ExpandMore />}
+          <IconButton size="small">
+            <PushPinOutlined fontSize="inherit" />
           </IconButton>
         </Box>
       </Box>
@@ -48,7 +72,7 @@ export const ChannelCard = ({
         }}
         elevation={0}
       >
-        {showViz && (
+        {loaded && (
           <ChannelVizGroup
             guildId={guildId}
             channelId={channelId}
@@ -66,6 +90,6 @@ export const ChannelCard = ({
           </ChannelVizGroup>
         )}
       </Paper>
-    </Paper>
+    </Card>
   );
 };

@@ -85,14 +85,14 @@ export const VizScroller = ({
   groupKey,
   children,
   fixedBaseline = false,
-  sx={}
+  sx = {},
 }: {
   groupKey: string;
   children:
     | React.ReactNode
     | (({ offset }: { offset: number }) => React.ReactNode);
   fixedBaseline?: boolean;
-  sx?: SxProps
+  sx?: SxProps;
 }) => {
   const { height, offset, maxScrollOffset } = useAppSelector(
     selectVizScrollerGroup(groupKey)
@@ -112,7 +112,7 @@ export const VizScroller = ({
         display: "flex",
         flexFlow: "column-reverse",
         position: "relative",
-        ...sx
+        ...sx,
       }}
     >
       {typeof children === "function" ? children({ offset }) : children}

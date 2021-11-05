@@ -86,7 +86,7 @@ export const CompactChatView = ({
   ]);
 
   return (
-    <VizScroller groupKey={groupKey} sx={{flexGrow: 1}} fixedBaseline>
+    <VizScroller groupKey={groupKey} sx={{ flexGrow: 1 }} fixedBaseline>
       <Box
         sx={{
           display: "flex",
