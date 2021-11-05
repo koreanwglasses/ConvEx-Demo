@@ -4,29 +4,34 @@ import { fetchOlderMessages, selectMessages } from "../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import {
   VizGroupContainer,
-  VizScrollHandler
+  VizScrollHandler,
 } from "../../viz-scroller/viz-scroller";
 import {
   selectInitialOffsets,
-  selectVizScrollerGroup
+  selectVizScrollerGroup,
 } from "../../viz-scroller/viz-scroller-slice";
 
-
 export const ChannelVizGroup = ({
-  channelId, guildId, children, groupKey,
+  channelId,
+  guildId,
+  children,
+  groupKey,
 }: {
   channelId: string;
   guildId: string;
   groupKey: string;
   children: ({
-    reachedBeginning, messages, pending,
+    reachedBeginning,
+    messages,
+    pending,
   }: {
     reachedBeginning: boolean;
     pending: boolean;
     messages?: MessageData[];
   }) => React.ReactNode;
 }) => {
-  const { messages, pending, reachedBeginning } = useAppSelector(selectMessages(guildId, channelId)) ?? {};
+  const { messages, pending, reachedBeginning } =
+    useAppSelector(selectMessages(guildId, channelId)) ?? {};
 
   const dispatch = useAppDispatch();
   useEffect(() => {
@@ -39,11 +44,12 @@ export const ChannelVizGroup = ({
   const { height } = useAppSelector(selectVizScrollerGroup(channelId));
 
   const onScroll: VizScrollHandler = (e) => {
-    const hasScrolledToTop = initialOffsets &&
+    const hasScrolledToTop =
+      initialOffsets &&
       messages?.length &&
       e.currentTarget.scrollTop -
-      initialOffsets(messages[messages.length - 1].id) <
-      height;
+        initialOffsets(messages[messages.length - 1].id) <
+        height;
     if (hasScrolledToTop && !pending && !reachedBeginning) {
       dispatch(fetchOlderMessages(guildId, channelId));
     }

@@ -1,4 +1,4 @@
-import { Box } from "@mui/system";
+import { Box, SxProps } from "@mui/system";
 import React, { UIEvent } from "react";
 import { useAppDispatch, useAppSelector } from "../hooks";
 import {
@@ -72,7 +72,7 @@ export const VizGroupContainer = ({
             maxScrollOffset ?? Number.POSITIVE_INFINITY
           ),
           flexShrink: 0,
-          display: "flex"
+          display: "flex",
         }}
       >
         {children}
@@ -85,20 +85,22 @@ export const VizScroller = ({
   groupKey,
   children,
   fixedBaseline = false,
+  sx={}
 }: {
   groupKey: string;
   children:
     | React.ReactNode
     | (({ offset }: { offset: number }) => React.ReactNode);
   fixedBaseline?: boolean;
+  sx?: SxProps
 }) => {
   const { height, offset, maxScrollOffset } = useAppSelector(
     selectVizScrollerGroup(groupKey)
   );
 
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         top: Math.min(
           maxScrollOffset
             ? maxScrollOffset - 3 * height - offset
@@ -110,9 +112,10 @@ export const VizScroller = ({
         display: "flex",
         flexFlow: "column-reverse",
         position: "relative",
+        ...sx
       }}
     >
       {typeof children === "function" ? children({ offset }) : children}
-    </div>
+    </Box>
   );
 };
