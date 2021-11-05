@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import type { AppThunk, RootState } from "../store";
 import { MessageData } from "../../common/api-data-types";
 import { fetchJSON } from "../../utils";
+import { fetchAnalyses } from "./analyses-slice";
 
 // Define a type for the slice state
 interface MessagesState {
@@ -81,7 +82,11 @@ export const Messages = createSlice({
 const { startFetchingMessages, finishFetchingMessages } = Messages.actions;
 
 export const fetchOlder =
-  (guildId: string, channelId: string, limit?: number): AppThunk =>
+  (
+    guildId: string,
+    channelId: string,
+    { limit, analyze = true }: { limit?: number; analyze?: boolean } = {}
+  ): AppThunk =>
   async (dispatch, getState) => {
     const slice = getState().messages[key(guildId, channelId)] ?? {
       messages: [],
@@ -101,27 +106,18 @@ export const fetchOlder =
       }
     );
     dispatch(finishFetchingMessages({ guildId, channelId, messages, err }));
-  };
 
-export const fetchNewer =
-  (guildId: string, channelId: string, limit?: number): AppThunk =>
-  async (dispatch, getState) => {
-    const slice = getState().messages[key(guildId, channelId)] ?? {
-      messages: [],
-    };
-    if (slice.pending) return;
-
-    const newest = slice.messages.length ? slice.messages[0] : undefined;
-
-    dispatch(startFetchingMessages({ guildId, channelId }));
-    const [err, messages] = await fetchJSON(
-      `/api/messages/${guildId}/${channelId}/fetch`,
-      {
-        after: newest?.id,
-        limit,
-      }
-    );
-    dispatch(finishFetchingMessages({ guildId, channelId, messages, err }));
+    if (analyze) {
+      dispatch(
+        fetchAnalyses(
+          messages.map((message: MessageData) => ({
+            guildId,
+            channelId,
+            messageId: message.id,
+          }))
+        )
+      );
+    }
   };
 
 export const selectMessages =

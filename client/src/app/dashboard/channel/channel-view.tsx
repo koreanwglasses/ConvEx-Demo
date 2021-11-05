@@ -1,6 +1,5 @@
 import { Paper, Typography } from "@mui/material";
-import { useEffect, useRef } from "react";
-import { fetchAnalyses } from "../../data/analyses-slice";
+import { useEffect } from "react";
 import { selectChannelById } from "../../data/channels-slice";
 import { fetchOlder, selectMessages } from "../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
@@ -24,21 +23,6 @@ export const CondensedChannelView = ({
     }
   }, [messages, pending, dispatch, guildId, channelId]);
 
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (ref.current && messages?.length) {
-      dispatch(
-        fetchAnalyses(
-          messages.map((message) => ({
-            guildId,
-            channelId,
-            messageId: message.id,
-          }))
-        )
-      );
-    }
-  }, [messages, dispatch, guildId, channelId]);
-
   return (
     <Paper
       sx={{
@@ -47,7 +31,6 @@ export const CondensedChannelView = ({
         flexDirection: "column",
         justifyContent: "space-between",
       }}
-      ref={ref}
     >
       <Typography variant="h6" gutterBottom sx={{ m: 1, fontSize: 16 }}>
         #{channel && channel.name}
