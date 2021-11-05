@@ -1,5 +1,5 @@
 import { Box, SxProps } from "@mui/system";
-import React, { UIEvent } from "react";
+import React, { forwardRef, UIEvent } from "react";
 import { useAppDispatch, useAppSelector } from "../hooks";
 import {
   selectVizScrollerGroup,
@@ -73,6 +73,7 @@ export const VizGroupContainer = ({
           ),
           flexShrink: 0,
           display: "flex",
+          alignItems: "flex-start",
         }}
       >
         {children}
@@ -81,41 +82,47 @@ export const VizGroupContainer = ({
   );
 };
 
-export const VizScroller = ({
-  groupKey,
-  children,
-  fixedBaseline = false,
-  sx = {},
-}: {
-  groupKey: string;
-  children:
-    | React.ReactNode
-    | (({ offset }: { offset: number }) => React.ReactNode);
-  fixedBaseline?: boolean;
-  sx?: SxProps;
-}) => {
-  const { height, offset, maxScrollOffset } = useAppSelector(
-    selectVizScrollerGroup(groupKey)
-  );
+export const VizScroller = forwardRef(
+  (
+    {
+      groupKey,
+      children,
+      fixedBaseline = false,
+      sx = {},
+    }: {
+      groupKey: string;
+      children:
+        | React.ReactNode
+        | (({ offset }: { offset: number }) => React.ReactNode);
+      fixedBaseline?: boolean;
+      sx?: SxProps;
+    },
+    ref
+  ) => {
+    const { height, offset, maxScrollOffset } = useAppSelector(
+      selectVizScrollerGroup(groupKey)
+    );
 
-  return (
-    <Box
-      sx={{
-        top: Math.min(
-          maxScrollOffset
-            ? maxScrollOffset - 3 * height - offset
-            : Number.POSITIVE_INFINITY,
-          height
-        ),
-        height: fixedBaseline ? 3 * height + offset : 3 * height,
-        overflowY: "hidden",
-        display: "flex",
-        flexFlow: "column-reverse",
-        position: "relative",
-        ...sx,
-      }}
-    >
-      {typeof children === "function" ? children({ offset }) : children}
-    </Box>
-  );
-};
+    return (
+      <Box
+        sx={{
+          top: Math.min(
+            maxScrollOffset
+              ? maxScrollOffset - 3 * height - offset
+              : Number.POSITIVE_INFINITY,
+            height
+          ),
+          height: fixedBaseline ? 3 * height + offset : 3 * height,
+          overflowY: "hidden",
+          display: "flex",
+          flexFlow: "column-reverse",
+          position: "relative",
+          ...sx,
+        }}
+        ref={ref}
+      >
+        {typeof children === "function" ? children({ offset }) : children}
+      </Box>
+    );
+  }
+);

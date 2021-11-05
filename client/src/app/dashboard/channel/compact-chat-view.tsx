@@ -11,6 +11,7 @@ import {
   setInitialOffset,
 } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
+import { SxProps } from "@mui/system";
 
 export const CompactChatView = ({
   guildId,
@@ -18,12 +19,14 @@ export const CompactChatView = ({
   messages,
   groupKey,
   reachedBeginning = false,
+  sx = { flexGrow: 1, flexBasis: 300 },
 }: {
   messages?: MessageData[];
   guildId: string;
   channelId: string;
   groupKey: string;
   reachedBeginning?: boolean;
+  sx?: SxProps;
 }) => {
   // Only rendering default messages and replies for now
   const messagesToRender = messages?.filter(
@@ -56,13 +59,13 @@ export const CompactChatView = ({
   const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
 
   return (
-    <VizScroller groupKey={groupKey} sx={{ flexGrow: 1 }} fixedBaseline>
+    <VizScroller groupKey={groupKey} sx={sx} fixedBaseline>
       <Box
         sx={{
           display: "flex",
           flexFlow: "column-reverse",
           gap: 1,
-          pb: 1
+          pb: 1,
         }}
       >
         {messageGroups?.map((group) => (

@@ -1,4 +1,4 @@
-import { ExpandLess, ExpandMore, StarOutline } from "@mui/icons-material";
+import { Add, ExpandLess, ExpandMore } from "@mui/icons-material";
 import {
   Card,
   CardActionArea,
@@ -10,6 +10,7 @@ import { Box } from "@mui/system";
 import React, { useEffect, useState } from "react";
 import { selectChannelById } from "../../data/channels-slice";
 import { useAppSelector } from "../../hooks";
+import { AnalysisBars } from "./analysis-bars";
 import { ChannelVizGroup } from "./channel-viz-group";
 import { CompactChatView } from "./compact-chat-view";
 
@@ -32,7 +33,7 @@ export const ChannelCard = ({
   return (
     <Card
       sx={{
-        width: 300,
+        width: 600,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
@@ -57,7 +58,7 @@ export const ChannelCard = ({
         </CardActionArea>
         <Box>
           <IconButton size="small">
-            <StarOutline fontSize="inherit" />
+            <Add fontSize="inherit" />
           </IconButton>
         </Box>
       </Box>
@@ -79,13 +80,22 @@ export const ChannelCard = ({
             groupKey={channelId}
           >
             {({ reachedBeginning, messages }) => (
-              <CompactChatView
-                messages={messages}
-                groupKey={channelId}
-                guildId={guildId}
-                channelId={channelId}
-                reachedBeginning={reachedBeginning}
-              />
+              <>
+                <CompactChatView
+                  messages={messages}
+                  groupKey={channelId}
+                  guildId={guildId}
+                  channelId={channelId}
+                  reachedBeginning={reachedBeginning}
+                />
+                <AnalysisBars
+                  messages={messages}
+                  groupKey={channelId}
+                  guildId={guildId}
+                  channelId={channelId}
+                  reachedBeginning={reachedBeginning}
+                />
+              </>
             )}
           </ChannelVizGroup>
         )}
