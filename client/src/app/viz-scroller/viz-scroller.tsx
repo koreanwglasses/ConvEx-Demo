@@ -5,19 +5,15 @@ import {
   adjustScrollOffset,
 } from "./viz-scroller-slice";
 
-export const VizScroller = ({
+export const VizGroupContainer = ({
   groupKey,
-  children,
   onScroll: onScroll_,
-  fixedBaseline = false,
-}: {
+  children,
+}: React.PropsWithChildren<{
   groupKey: string;
-  children:
-    | React.ReactNode
-    | (({ offset }: { offset: number }) => React.ReactNode);
   onScroll?: React.UIEventHandler<HTMLDivElement>;
   fixedBaseline?: boolean;
-}) => {
+}>) => {
   const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
 
   const dispatch = useAppDispatch();
@@ -64,17 +60,35 @@ export const VizScroller = ({
           flexShrink: 0,
         }}
       >
-        <div
-          style={{
-            height: fixedBaseline ? 3 * height + offset : 3 * height,
-            overflowY: "hidden",
-            display: "flex",
-            flexFlow: "column-reverse",
-          }}
-        >
-          {typeof children === "function" ? children({ offset }) : children}
-        </div>
+        {children}
       </div>
     </Box>
+  );
+};
+
+export const VizScroller = ({
+  groupKey,
+  children,
+  fixedBaseline = false,
+}: {
+  groupKey: string;
+  children:
+    | React.ReactNode
+    | (({ offset }: { offset: number }) => React.ReactNode);
+  fixedBaseline?: boolean;
+}) => {
+  const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
+
+  return (
+    <div
+      style={{
+        height: fixedBaseline ? 3 * height + offset : 3 * height,
+        overflowY: "hidden",
+        display: "flex",
+        flexFlow: "column-reverse",
+      }}
+    >
+      {typeof children === "function" ? children({ offset }) : children}
+    </div>
   );
 };
