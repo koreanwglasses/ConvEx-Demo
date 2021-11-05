@@ -6,6 +6,7 @@ interface VizScrollersState {
   [key: string]: {
     offset: number;
     height: number;
+    maxOffset?: number;
     initialOffsets: {
       type: "map";
       offsetMap: Record<string, number>;
@@ -31,6 +32,8 @@ export const VizScrollers = createSlice({
       const slice = state[key] ?? {};
       const { offset = 0 } = slice;
       slice.offset = Math.max(offset + amount, 0);
+      if (slice.maxOffset)
+        slice.offset = Math.min(slice.offset, slice.maxOffset);
       state[key] = slice;
     },
     setInitialOffset(
@@ -52,15 +55,25 @@ export const VizScrollers = createSlice({
       slice.initialOffsets = initialOffsets;
       state[key] = slice;
     },
+    setMaxOffset(state, action: { payload: { key: string; offset?: number } }) {
+      const { key } = action.payload;
+      const slice = state[key] ?? {};
+      slice.maxOffset = action.payload.offset;
+      state[key] = slice;
+    },
   },
 });
 
-export const { adjustScrollOffset, setInitialOffset, clearInitialOffsets } =
-  VizScrollers.actions;
+export const {
+  adjustScrollOffset,
+  setInitialOffset,
+  clearInitialOffsets,
+  setMaxOffset,
+} = VizScrollers.actions;
 
 export const selectVizScrollerGroup = (key: string) => (state: RootState) => {
-  const { offset = 0, height = 400 } = state.vizScrollers[key] ?? {};
-  return { offset, height };
+  const { offset = 0, height = 400, maxOffset } = state.vizScrollers[key] ?? {};
+  return { offset, height, maxOffset };
 };
 
 export const selectInitialOffsets = (key: string) => (state: RootState) => {

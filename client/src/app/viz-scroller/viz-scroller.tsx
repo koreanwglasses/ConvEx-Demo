@@ -19,7 +19,9 @@ export const VizGroupContainer = ({
   onScroll?: VizScrollHandler;
   fixedBaseline?: boolean;
 }>) => {
-  const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
+  const { height, offset, maxOffset } = useAppSelector(
+    selectVizScrollerGroup(groupKey)
+  );
 
   const dispatch = useAppDispatch();
   const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
@@ -27,7 +29,7 @@ export const VizGroupContainer = ({
       e.currentTarget.scrollHeight +
       e.currentTarget.scrollTop -
       e.currentTarget.clientHeight;
-    if (scrollFromTop < height / 2) {
+    if (scrollFromTop < height / 2 && (!maxOffset || offset < maxOffset)) {
       dispatch(
         adjustScrollOffset({
           key: groupKey,
