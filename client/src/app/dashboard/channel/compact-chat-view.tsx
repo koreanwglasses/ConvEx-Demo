@@ -166,7 +166,7 @@ const CompactMessageGroup = ({
             variant="subtitle2"
             sx={{ mr: 1, color: member?.displayHexColor }}
           >
-            {member?.user.username ?? "#"}
+            {member?.user.username ?? "..."}
           </Typography>
           <Typography
             variant="caption"
