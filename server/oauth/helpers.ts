@@ -1,7 +1,7 @@
 import { to } from "await-to-js";
 import { DiscordAPIError, PermissionString, User } from "discord.js";
 import { Handler } from "express";
-import { client } from "../discord/bot";
+import client from "../discord/bot";
 
 const MODERATOR_ACCESS_PERMISSIONS = [];
 

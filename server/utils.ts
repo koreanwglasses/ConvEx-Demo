@@ -1,9 +1,9 @@
 import config from "./config";
 
 export function baseURL() {
-  return `http://${config.express.hostname}${
-    config.express.port == 80 || config.express.port == 8080
+  return `http://${config.server.hostname}${
+    config.server.port == 80 || config.server.port == 8080
       ? ""
-      : `:${config.express.port}`
+      : `:${config.server.port}`
   }`;
 }

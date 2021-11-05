@@ -30,6 +30,7 @@ export interface MessageData {
   content: string;
   cleanContent: string;
   createdTimestamp: number;
+  editTimestamp: number;
   authorID: string;
   type: MessageType;
   embeds: EmbedData[];

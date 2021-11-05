@@ -185,7 +185,7 @@ const CompactMessageView = ({
         backgroundColor: toxicityColor.toString(),
         fontSize: 14,
         pl: 0.5,
-        pr:1
+        pr: 1,
       }}
       ref={ref}
     >

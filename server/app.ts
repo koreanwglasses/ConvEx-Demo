@@ -21,7 +21,7 @@ const MemoryStore = createMemoryStore(session);
 app.use(
   session({
     store: new MemoryStore({ checkPeriod: 86400000 }),
-    secret: config.express.sessionSecret,
+    secret: config.server.sessionSecret,
     resave: false,
     saveUninitialized: false,
   })

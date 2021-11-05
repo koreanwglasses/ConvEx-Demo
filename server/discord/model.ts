@@ -18,7 +18,7 @@ import {
   EmbedData,
   AttachmentData,
 } from "../common/api-data-types";
-import { client } from "./bot";
+import client from "./bot";
 
 const toGuildData = (guild: OAuth2Guild | Guild): GuildData =>
   guild && {
@@ -55,6 +55,7 @@ const toMessageData = (message: Message): MessageData =>
     content: message.content,
     cleanContent: message.cleanContent,
     createdTimestamp: message.createdTimestamp,
+    editTimestamp: message.editedTimestamp,
     authorID: message.author.id,
     type: message.type,
     embeds: message.embeds?.map(toEmbedData),

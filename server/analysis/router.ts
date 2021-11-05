@@ -1,9 +1,8 @@
 import { User } from "discord.js";
 import { Router } from "express";
 import expressAsyncHandler from "express-async-handler";
-import { fetchMessage } from "../discord/model";
 import { hasModeratorAccess, requireAuthenticated } from "../oauth/helpers";
-import { analyze } from "./model";
+import { analyzeMessage } from "./model";
 
 const router = Router();
 
@@ -17,15 +16,12 @@ router.post(
       messageIds: { guildId: string; channelId: string; messageId: string }[];
     };
 
-    const messages = await Promise.all(
+    const analyses = await Promise.all(
       messageIds.map(async ({ guildId, channelId, messageId }) => {
         if (!hasModeratorAccess(userId, guildId, channelId)) return null;
-        const message = await fetchMessage(guildId, channelId, messageId);
-        return message.cleanContent;
+        return analyzeMessage(guildId, channelId, messageId);
       })
     );
-
-    const analyses = await Promise.all(messages.map(analyze));
 
     res.send(analyses);
   })

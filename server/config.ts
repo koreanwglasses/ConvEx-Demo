@@ -15,7 +15,7 @@ const config = {
     apiKey: process.env.PERSPECTIVE_API_KEY,
   },
 
-  express: {
+  server: {
     /**
      * Port to start express server on
      */
@@ -25,6 +25,14 @@ const config = {
      */
     hostname: process.env.HOSTNAME ?? "localhost",
     sessionSecret: process.env.SESSION_SECRET ?? "abc",
+  },
+
+  database: {
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    name: process.env.DB_NAME,
+    host: process.env.DB_HOST || "localhost",
+    port: process.env.DB_PORT || 27017,
   },
 };
 
