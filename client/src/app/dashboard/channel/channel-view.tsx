@@ -1,7 +1,7 @@
 import { Paper, Typography } from "@mui/material";
 import { useEffect } from "react";
 import { selectChannelById } from "../../data/channels-slice";
-import { fetchOlder, selectMessages } from "../../data/messages-slice";
+import { fetchOlderMessages, selectMessages } from "../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import {
   VizGroupContainer,
@@ -21,32 +21,30 @@ export const CondensedChannelView = ({
   guildId: string;
 }) => {
   const channel = useAppSelector(selectChannelById(guildId, channelId));
-  const { messages, pending } =
+  const { messages, pending, reachedBeginning } =
     useAppSelector(selectMessages(guildId, channelId)) ?? {};
-
-  const initialOffsets = useAppSelector(selectInitialOffsets(channelId));
-  const { offset } = useAppSelector(selectVizScrollerGroup(channelId));
-  // const hasScrolledToTop = messages &&
-
-  // console.log(
-  // messages?.length && initialOffsets?.(messages[0].id)
-  // );
-
-  const onScroll: VizScrollHandler = (e) => {
-    if (channel?.name === "funk-squad") {
-      console.log(
-        initialOffsets?.(messages?.[0]?.id) || 0,
-        initialOffsets?.(messages?.[messages.length - 1]?.id) || 0
-      );
-    }
-  };
 
   const dispatch = useAppDispatch();
   useEffect(() => {
     if (!messages && !pending) {
-      dispatch(fetchOlder(guildId, channelId));
+      dispatch(fetchOlderMessages(guildId, channelId));
     }
   }, [messages, pending, dispatch, guildId, channelId]);
+
+  const initialOffsets = useAppSelector(selectInitialOffsets(channelId));
+  const { height } = useAppSelector(selectVizScrollerGroup(channelId));
+
+  const onScroll: VizScrollHandler = (e) => {
+    const hasScrolledToTop =
+      initialOffsets &&
+      messages?.length &&
+      e.currentTarget.scrollTop -
+        initialOffsets(messages[messages.length - 1].id) <
+        height;
+    if (hasScrolledToTop && !pending && !reachedBeginning) {
+      dispatch(fetchOlderMessages(guildId, channelId));
+    }
+  };
 
   return (
     <Paper

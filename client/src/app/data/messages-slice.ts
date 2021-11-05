@@ -8,10 +8,14 @@ import { fetchAnalyses } from "./analyses-slice";
 interface MessagesState {
   [key: string]: {
     pending: boolean;
-    messages: MessageData[];
+    messages?: MessageData[];
     lastErr?: any;
+    reachedBeginning: boolean;
+    lastLimit?: number;
   };
 }
+
+const defaultValue = () => ({ pending: false, reachedBeginning: false });
 
 const key = (guildId: string, channelId: string) => `${guildId}/${channelId}`;
 
@@ -42,14 +46,14 @@ export const Messages = createSlice({
         payload: {
           guildId: string;
           channelId: string;
+          limit: number;
         };
       }
     ) {
       const { guildId, channelId } = action.payload;
-      const slice = state[key(guildId, channelId)] ?? {
-        messages: [],
-      };
+      const slice = state[key(guildId, channelId)] ?? defaultValue();
       slice.pending = true;
+      slice.lastLimit = action.payload.limit;
 
       state[key(guildId, channelId)] = slice;
     },
@@ -65,13 +69,19 @@ export const Messages = createSlice({
       }
     ) {
       const { guildId, channelId, messages, err } = action.payload;
-      const slice = state[key(guildId, channelId)] ?? {
-        messages: [],
-      };
+      const slice = state[key(guildId, channelId)] ?? defaultValue();
       slice.pending = false;
       slice.lastErr = err;
       if (messages) {
-        slice.messages = mergeMessages(slice.messages, messages);
+        slice.messages = mergeMessages(slice.messages ?? [], messages);
+      }
+
+      if (
+        messages?.length &&
+        slice.lastLimit &&
+        messages.length < slice.lastLimit
+      ) {
+        slice.reachedBeginning = true;
       }
 
       state[key(guildId, channelId)] = slice;
@@ -81,23 +91,22 @@ export const Messages = createSlice({
 
 const { startFetchingMessages, finishFetchingMessages } = Messages.actions;
 
-export const fetchOlder =
+export const fetchOlderMessages =
   (
     guildId: string,
     channelId: string,
-    { limit, analyze = true }: { limit?: number; analyze?: boolean } = {}
+    { limit = 100, analyze = true }: { limit?: number; analyze?: boolean } = {}
   ): AppThunk =>
   async (dispatch, getState) => {
-    const slice = getState().messages[key(guildId, channelId)] ?? {
-      messages: [],
-    };
+    const slice =
+      getState().messages[key(guildId, channelId)] ?? defaultValue();
     if (slice.pending) return;
 
-    const oldest = slice.messages.length
+    const oldest = slice.messages?.length
       ? slice.messages[slice.messages.length - 1]
       : undefined;
 
-    dispatch(startFetchingMessages({ guildId, channelId }));
+    dispatch(startFetchingMessages({ guildId, channelId, limit }));
     const [err, messages] = await fetchJSON(
       `/api/messages/${guildId}/${channelId}/fetch`,
       {
@@ -122,6 +131,6 @@ export const fetchOlder =
 
 export const selectMessages =
   (guildId: string, channelId: string) => (state: RootState) =>
-    state.messages[key(guildId, channelId)];
+    state.messages[key(guildId, channelId)] ?? defaultValue();
 
 export default Messages.reducer;
