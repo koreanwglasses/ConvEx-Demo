@@ -1,5 +1,6 @@
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 
-export const RouterLink = ({ innerRef, href, ...props }: any) => (
-  <Link {...props} to={href} />
-);
+export const RouterLink = forwardRef(({ href, ...props }: any, ref) => (
+  <Link {...props} to={href} ref={ref} />
+));

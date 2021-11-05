@@ -19,7 +19,7 @@ export const VizGroupContainer = ({
   onScroll?: VizScrollHandler;
   fixedBaseline?: boolean;
 }>) => {
-  const { height, offset, maxOffset } = useAppSelector(
+  const { height, offset, maxScrollOffset } = useAppSelector(
     selectVizScrollerGroup(groupKey)
   );
 
@@ -28,19 +28,23 @@ export const VizGroupContainer = ({
     const scrollFromTop =
       e.currentTarget.scrollHeight +
       e.currentTarget.scrollTop -
-      e.currentTarget.clientHeight;
-    if (scrollFromTop < height / 2 && (!maxOffset || offset < maxOffset)) {
+      e.currentTarget.clientHeight -
+      height;
+    if (
+      scrollFromTop < height / 2 &&
+      (!maxScrollOffset || offset + 3 * height < maxScrollOffset)
+    ) {
       dispatch(
         adjustScrollOffset({
           key: groupKey,
-          amount: height,
+          amount: height / 2,
         })
       );
     } else if (scrollFromTop > (3 * height) / 2 && offset > 0) {
       dispatch(
         adjustScrollOffset({
           key: groupKey,
-          amount: -height,
+          amount: -height / 2,
         })
       );
     }
@@ -63,7 +67,10 @@ export const VizGroupContainer = ({
     >
       <div
         style={{
-          height: 3 * height + offset,
+          height: Math.min(
+            4 * height + offset,
+            maxScrollOffset ?? Number.POSITIVE_INFINITY
+          ),
           flexShrink: 0,
         }}
       >
@@ -84,11 +91,19 @@ export const VizScroller = ({
     | (({ offset }: { offset: number }) => React.ReactNode);
   fixedBaseline?: boolean;
 }) => {
-  const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
+  const { height, offset, maxScrollOffset } = useAppSelector(
+    selectVizScrollerGroup(groupKey)
+  );
 
   return (
     <div
       style={{
+        top: Math.min(
+          maxScrollOffset
+            ? maxScrollOffset - 3 * height - offset
+            : Number.POSITIVE_INFINITY,
+          height
+        ),
         height: fixedBaseline ? 3 * height + offset : 3 * height,
         overflowY: "hidden",
         display: "flex",
