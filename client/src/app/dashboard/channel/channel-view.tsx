@@ -3,7 +3,10 @@ import { useEffect } from "react";
 import { selectChannelById } from "../../data/channels-slice";
 import { fetchOlder, selectMessages } from "../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
-import { VizGroupContainer } from "../../viz-scroller/viz-scroller";
+import {
+  VizGroupContainer,
+  VizScrollHandler,
+} from "../../viz-scroller/viz-scroller";
 import {
   selectInitialOffsets,
   selectVizScrollerGroup,
@@ -26,8 +29,17 @@ export const CondensedChannelView = ({
   // const hasScrolledToTop = messages &&
 
   // console.log(
-  //   messages && (initialOffsets?.(messages[messages.length - 1].id) ?? 0)
+  // messages?.length && initialOffsets?.(messages[0].id)
   // );
+
+  const onScroll: VizScrollHandler = (e) => {
+    if (channel?.name === "funk-squad") {
+      console.log(
+        initialOffsets?.(messages?.[0]?.id) || 0,
+        initialOffsets?.(messages?.[messages.length - 1]?.id) || 0
+      );
+    }
+  };
 
   const dispatch = useAppDispatch();
   useEffect(() => {
@@ -51,8 +63,7 @@ export const CondensedChannelView = ({
 
       <Paper sx={{ height: 400, pl: 1 }} elevation={0}>
         {messages && channel && (
-
-          <VizGroupContainer groupKey={channelId}>
+          <VizGroupContainer groupKey={channelId} onScroll={onScroll}>
             <CompactChatView
               messages={messages}
               groupKey={channelId}

@@ -1,9 +1,14 @@
 import { Box } from "@mui/system";
+import React, { UIEvent } from "react";
 import { useAppDispatch, useAppSelector } from "../hooks";
 import {
   selectVizScrollerGroup,
   adjustScrollOffset,
 } from "./viz-scroller-slice";
+
+export interface VizScrollHandler {
+  (event: UIEvent<HTMLDivElement> & { scrollFromTop: number }): void;
+}
 
 export const VizGroupContainer = ({
   groupKey,
@@ -11,7 +16,7 @@ export const VizGroupContainer = ({
   children,
 }: React.PropsWithChildren<{
   groupKey: string;
-  onScroll?: React.UIEventHandler<HTMLDivElement>;
+  onScroll?: VizScrollHandler;
   fixedBaseline?: boolean;
 }>) => {
   const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
@@ -37,7 +42,7 @@ export const VizGroupContainer = ({
         })
       );
     }
-    onScroll_ && onScroll_(e);
+    onScroll_ && onScroll_(Object.assign(e, { scrollFromTop }));
   };
 
   return (
@@ -86,6 +91,7 @@ export const VizScroller = ({
         overflowY: "hidden",
         display: "flex",
         flexFlow: "column-reverse",
+        position: "relative",
       }}
     >
       {typeof children === "function" ? children({ offset }) : children}

@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
 import {
   selectInitialOffsets,
+  selectVizScrollerGroup,
   setInitialOffset,
 } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
@@ -110,7 +111,7 @@ const CompactMessageGroup = ({
             variant="subtitle2"
             sx={{ mr: 1, color: member?.displayHexColor }}
           >
-            {member?.user.username}
+            {member?.user.username ?? "#"}
           </Typography>
           <Typography
             variant="caption"
@@ -161,7 +162,10 @@ const CompactMessageView = ({
         setInitialOffset({
           key: groupKey,
           itemKey: message.id,
-          offset: ref.current.clientTop - ref.current.clientHeight / 2,
+          offset:
+            ref.current.offsetTop +
+            ref.current.offsetHeight / 2 -
+            (ref.current.offsetParent?.clientHeight ?? 0),
         })
       );
     }
