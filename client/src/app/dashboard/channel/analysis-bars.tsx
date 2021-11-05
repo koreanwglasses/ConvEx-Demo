@@ -8,7 +8,7 @@ import {
   selectVizScrollerGroup,
 } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { selectBatchAnalysis } from "../../data/analyses-slice";
 
 export const AnalysisBars = ({
@@ -67,7 +67,7 @@ export const AnalysisBars = ({
   },[])
   const selections = useRef<ReturnType<typeof init>>();
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if ( !data || !width || !initialOffsets) return;
     if (!selections.current && !(selections.current = init())) return;
 
