@@ -9,6 +9,7 @@ import {
 import {
   selectInitialOffsets,
   selectVizScrollerGroup,
+  setMaxScrollOffset,
 } from "../../viz-scroller/viz-scroller-slice";
 
 export const ChannelVizGroup = ({
@@ -40,8 +41,10 @@ export const ChannelVizGroup = ({
     }
   }, [messages, pending, dispatch, guildId, channelId]);
 
-  const initialOffsets = useAppSelector(selectInitialOffsets(channelId));
-  const { height } = useAppSelector(selectVizScrollerGroup(channelId));
+  const initialOffsets = useAppSelector(selectInitialOffsets(groupKey));
+  const { height, maxScrollOffset } = useAppSelector(
+    selectVizScrollerGroup(groupKey)
+  );
 
   const onScroll: VizScrollHandler = (e) => {
     const hasScrolledToTop =
@@ -54,6 +57,33 @@ export const ChannelVizGroup = ({
       dispatch(fetchOlderMessages(guildId, channelId));
     }
   };
+
+  // Stop scrolling when we reach the end
+
+  useEffect(() => {
+    if (
+      reachedBeginning &&
+      messages?.length &&
+      !maxScrollOffset &&
+      initialOffsets
+    ) {
+      const firstMessageOffset = initialOffsets(
+        messages[messages.length - 1].id
+      );
+      if (!firstMessageOffset) return;
+      const newMaxOffset = -firstMessageOffset + 0.5 * height;
+      dispatch(setMaxScrollOffset({ key: groupKey, offset: newMaxOffset }));
+    }
+  }, [
+    reachedBeginning,
+    messages,
+    maxScrollOffset,
+    initialOffsets,
+    dispatch,
+    height,
+    groupKey,
+  ]);
+
   return (
     <VizGroupContainer groupKey={groupKey} onScroll={onScroll}>
       {(pending || messages) &&

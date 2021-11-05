@@ -1,4 +1,4 @@
-import { ExpandLess, ExpandMore, PushPinOutlined } from "@mui/icons-material";
+import { ExpandLess, ExpandMore, StarOutline } from "@mui/icons-material";
 import {
   Card,
   CardActionArea,
@@ -57,7 +57,7 @@ export const ChannelCard = ({
         </CardActionArea>
         <Box>
           <IconButton size="small">
-            <PushPinOutlined fontSize="inherit" />
+            <StarOutline fontSize="inherit" />
           </IconButton>
         </Box>
       </Box>

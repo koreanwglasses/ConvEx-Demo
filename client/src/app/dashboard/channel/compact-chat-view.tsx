@@ -9,7 +9,6 @@ import {
   selectInitialOffsets,
   selectVizScrollerGroup,
   setInitialOffset,
-  setMaxScrollOffset,
 } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
 
@@ -54,36 +53,7 @@ export const CompactChatView = ({
     return groups;
   }, [] as MessageData[][]);
 
-  // Stop scrolling when we reach the end
-
-  const { height, maxScrollOffset } = useAppSelector(
-    selectVizScrollerGroup(groupKey)
-  );
-  const initialOffsets = useAppSelector(selectInitialOffsets(groupKey));
-  const dispatch = useAppDispatch();
-  useEffect(() => {
-    if (
-      reachedBeginning &&
-      messages?.length &&
-      !maxScrollOffset &&
-      initialOffsets
-    ) {
-      const firstMessageOffset = initialOffsets(
-        messages[messages.length - 1].id
-      );
-      if (!firstMessageOffset) return;
-      const newMaxOffset = -firstMessageOffset + 0.5 * height;
-      dispatch(setMaxScrollOffset({ key: groupKey, offset: newMaxOffset }));
-    }
-  }, [
-    reachedBeginning,
-    messages,
-    maxScrollOffset,
-    initialOffsets,
-    dispatch,
-    height,
-    groupKey,
-  ]);
+  const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
 
   return (
     <VizScroller groupKey={groupKey} sx={{ flexGrow: 1 }} fixedBaseline>
