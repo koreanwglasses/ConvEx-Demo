@@ -81,11 +81,18 @@ export const CompactChatView = ({
               justifyContent: "center",
               alignItems: "center",
               height: messages ? undefined : height,
-              mb: 1
+              mb: 1,
             }}
           >
             <CircularProgress />
           </Box>
+        )}
+        {reachedBeginning && (
+          <div>
+            <em style={{ opacity: 0.6, fontSize: 10 }}>
+              Reached beginning of channel
+            </em>
+          </div>
         )}
       </Box>
     </VizScroller>
