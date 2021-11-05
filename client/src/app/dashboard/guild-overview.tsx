@@ -5,7 +5,7 @@ import { useAppSelector } from "../hooks";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { RouterLink } from "../components/ui/router-link-component";
 import { selectChannels } from "../data/channels-slice";
-import { CondensedChannelView } from "./channel/channel-view";
+import { ChannelCard } from "./channel/channel-card";
 
 const GuildOverview = () => {
   const { guildId } = useParams();
@@ -47,7 +47,7 @@ const GuildOverview = () => {
             }}
           >
             {channels.map((channel) => (
-              <CondensedChannelView
+              <ChannelCard
                 key={channel.id}
                 channelId={channel.id}
                 guildId={guildId}

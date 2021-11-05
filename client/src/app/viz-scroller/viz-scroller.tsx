@@ -72,6 +72,7 @@ export const VizGroupContainer = ({
             maxScrollOffset ?? Number.POSITIVE_INFINITY
           ),
           flexShrink: 0,
+          display: "flex"
         }}
       >
         {children}
