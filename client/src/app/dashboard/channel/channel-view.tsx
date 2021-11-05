@@ -1,6 +1,5 @@
 import { Paper, Typography } from "@mui/material";
 import { useEffect, useRef } from "react";
-import { onEnterViewport } from "../../../utils";
 import { fetchAnalyses } from "../../data/analyses-slice";
 import { selectChannelById } from "../../data/channels-slice";
 import { fetchOlder, selectMessages } from "../../data/messages-slice";
@@ -28,18 +27,15 @@ export const CondensedChannelView = ({
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (ref.current && messages?.length) {
-      const { dispose } = onEnterViewport(ref.current, () => {
-        dispatch(
-          fetchAnalyses(
-            messages.map((message) => ({
-              guildId,
-              channelId,
-              messageId: message.id,
-            }))
-          )
-        );
-      });
-      return dispose;
+      dispatch(
+        fetchAnalyses(
+          messages.map((message) => ({
+            guildId,
+            channelId,
+            messageId: message.id,
+          }))
+        )
+      );
     }
   }, [messages, dispatch, guildId, channelId]);
 

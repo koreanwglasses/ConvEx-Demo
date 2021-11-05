@@ -32,8 +32,7 @@ export const analyzeMessage = async (
     editTimestamp: message.editTimestamp,
   }).exec();
 
-  if (cacheResult) 
-    return cacheResult.analysis;
+  if (cacheResult) return cacheResult.analysis;
 
   const analysis = await analyzeText(message.cleanContent);
   AnalysisCache.updateOne(

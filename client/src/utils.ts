@@ -26,26 +26,3 @@ export const fetchJSON = async <T = any>(url: string, body?: any) => {
   if (err1) return [err1] as const;
   return [null, result as T] as const;
 };
-
-export const isInViewport = (element: HTMLElement) => {
-  const rect = element.getBoundingClientRect();
-  return (
-    rect.top >= 0 &&
-    rect.left >= 0 &&
-    rect.bottom <=
-      (window.innerHeight || document.documentElement.clientHeight) &&
-    rect.right <= (window.innerWidth || document.documentElement.clientWidth)
-  );
-};
-
-export const onEnterViewport = (element: HTMLElement, callback: () => void) => {
-  let wasInViewport = false;
-  const listener = () => {
-    const inViewport = isInViewport(element);
-    if (inViewport && !wasInViewport) callback();
-    wasInViewport = inViewport;
-  };
-  listener();
-  window.addEventListener("scroll", listener);
-  return { dispose: window.removeEventListener("scroll", listener) };
-};
