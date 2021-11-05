@@ -67,10 +67,6 @@ export const VizGroupContainer = ({
     >
       <div
         style={{
-          height: Math.min(
-            4 * height + offset,
-            maxScrollOffset ?? Number.POSITIVE_INFINITY
-          ),
           flexShrink: 0,
           display: "flex",
           alignItems: "flex-start",
@@ -106,18 +102,20 @@ export const VizScroller = forwardRef(
     return (
       <Box
         sx={{
+          overflowY: "hidden",
+          display: "flex",
+          flexFlow: "column-reverse",
+          position: "relative",
+          ...sx,
+        }}
+        style={{
+          height: fixedBaseline ? 3 * height + offset : 3 * height,
           top: Math.min(
             maxScrollOffset
               ? maxScrollOffset - 3 * height - offset
               : Number.POSITIVE_INFINITY,
             height
           ),
-          height: fixedBaseline ? 3 * height + offset : 3 * height,
-          overflowY: "hidden",
-          display: "flex",
-          flexFlow: "column-reverse",
-          position: "relative",
-          ...sx,
         }}
         ref={ref}
       >

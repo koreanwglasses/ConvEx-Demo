@@ -19,14 +19,12 @@ export const CompactChatView = ({
   messages,
   groupKey,
   reachedBeginning = false,
-  sx = { flexGrow: 1, flexBasis: 300 },
 }: {
   messages?: MessageData[];
   guildId: string;
   channelId: string;
   groupKey: string;
   reachedBeginning?: boolean;
-  sx?: SxProps;
 }) => {
   // Only rendering default messages and replies for now
   const messagesToRender = messages?.filter(
@@ -59,7 +57,11 @@ export const CompactChatView = ({
   const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
 
   return (
-    <VizScroller groupKey={groupKey} sx={sx} fixedBaseline>
+    <VizScroller
+      groupKey={groupKey}
+      sx={{ flexGrow: 1, flexBasis: 300 }}
+      fixedBaseline
+    >
       <Box
         sx={{
           display: "flex",
@@ -84,8 +86,10 @@ export const CompactChatView = ({
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              height: messages ? undefined : height,
               mb: 1,
+            }}
+            style={{
+              height: messages ? undefined : height,
             }}
           >
             <CircularProgress />
@@ -138,7 +142,8 @@ const CompactMessageGroup = ({
         <Box sx={{ display: "flex", mb: 0.25 }}>
           <Typography
             variant="subtitle2"
-            sx={{ mr: 1, color: member?.displayHexColor }}
+            sx={{ mr: 1 }}
+            style={{ color: member?.displayHexColor }}
           >
             {member?.user.username ?? "..."}
           </Typography>
@@ -169,6 +174,7 @@ const CompactMessageGroup = ({
     </Box>
   );
 };
+
 const CompactMessageView = ({
   message,
   groupKey,
@@ -215,10 +221,12 @@ const CompactMessageView = ({
     <Box
       sx={{
         wordBreak: "break-word",
-        backgroundColor: toxicityColor.toString(),
         fontSize: 14,
         pl: 0.5,
         pr: 1,
+      }}
+      style={{
+        backgroundColor: toxicityColor.toString(),
       }}
       ref={ref}
     >

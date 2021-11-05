@@ -8,13 +8,7 @@ import {
   selectVizScrollerGroup,
 } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-} from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { selectBatchAnalysis } from "../../data/analyses-slice";
 
 export const AnalysisBars = ({
@@ -86,7 +80,14 @@ export const AnalysisBars = ({
 
     barsG
       .selectAll("rect")
-      .data(data.filter(([id]) => initialOffsets(id)))
+      .data(
+        data.filter(
+          ([id]) =>
+            initialOffsets(id) &&
+            -barHeight <= y(id) &&
+            y(id) <= height * 3 + barHeight
+        )
+      )
       .join("rect")
       .attr("x", x(0))
       .attr("width", ([, analysis]) => x(analysis ?? 0) - x(0))

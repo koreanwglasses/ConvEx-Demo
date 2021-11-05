@@ -67,9 +67,11 @@ export const ChannelCard = ({
         sx={{
           height: 400,
           pl: 1,
-          maxHeight: showViz ? 400 : 0,
           transition: "max-height 0.3s",
           overflowY: "hidden",
+        }}
+        style={{
+          maxHeight: showViz ? 400 : 0,
         }}
         elevation={0}
       >
