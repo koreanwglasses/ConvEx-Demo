@@ -1,4 +1,4 @@
-import { Avatar, Box, Typography } from "@mui/material";
+import { Avatar, Box, CircularProgress, Typography } from "@mui/material";
 import { useEffect, useRef } from "react";
 import { MessageData } from "../../../common/api-data-types";
 import { selectAnalysis } from "../../data/analyses-slice";
@@ -17,19 +17,21 @@ export const CompactChatView = ({
   channelId,
   messages,
   groupKey,
+  reachedBeginning = false,
 }: {
-  messages: MessageData[];
+  messages?: MessageData[];
   guildId: string;
   channelId: string;
   groupKey: string;
+  reachedBeginning?: boolean;
 }) => {
   // Only rendering default messages and replies for now
-  const messagesToRender = messages.filter(
+  const messagesToRender = messages?.filter(
     (message) => message.type === "DEFAULT" || message.type === "REPLY"
   );
 
   const groupingThreshold = 1000 * 60 * 5;
-  const messageGroups = messagesToRender.reduce((groups, message) => {
+  const messageGroups = messagesToRender?.reduce((groups, message) => {
     if (groups.length === 0) {
       groups.push([message]);
       return groups;
@@ -51,6 +53,8 @@ export const CompactChatView = ({
     return groups;
   }, [] as MessageData[][]);
 
+  const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
+
   return (
     <VizScroller groupKey={groupKey} fixedBaseline>
       <Box
@@ -60,7 +64,20 @@ export const CompactChatView = ({
           gap: 1,
         }}
       >
-        {messageGroups.map((group) => (
+        {!reachedBeginning && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: messages ? undefined : height,
+              mb: 1
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        )}
+        {messageGroups?.map((group) => (
           <CompactMessageGroup
             messages={group}
             groupKey={groupKey}

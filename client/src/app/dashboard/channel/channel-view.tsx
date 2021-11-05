@@ -60,13 +60,14 @@ export const CondensedChannelView = ({
       </Typography>
 
       <Paper sx={{ height: 400, pl: 1 }} elevation={0}>
-        {messages && channel && (
+        {(pending || messages) && (
           <VizGroupContainer groupKey={channelId} onScroll={onScroll}>
             <CompactChatView
               messages={messages}
               groupKey={channelId}
               guildId={guildId}
               channelId={channelId}
+              reachedBeginning={reachedBeginning}
             />
           </VizGroupContainer>
         )}
