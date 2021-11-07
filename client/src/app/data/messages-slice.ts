@@ -4,14 +4,16 @@ import { MessageData } from "../../common/api-data-types";
 import { fetchJSON } from "../../utils";
 import { fetchAnalyses } from "./analyses-slice";
 import socket from "../sockets";
+import { WritableDraft } from "immer/dist/types/types-external";
 
 interface SubState {
   pending: boolean;
   messages?: MessageData[];
   lastErr?: any;
   reachedBeginning: boolean;
-  lastLimit?: number;
+  isUpToDate: boolean;
   isAutoFetching: boolean;
+  isSubscribed: boolean;
 }
 
 // Define a type for the slice state
@@ -30,6 +32,8 @@ const sub = (
     pending: false,
     reachedBeginning: false,
     isAutoFetching: false,
+    isUpToDate: false,
+    isSubscribed: false,
   } as const;
   return (
     state[key(guildId, channelId)] ??
@@ -64,14 +68,12 @@ export const Messages = createSlice({
         payload: {
           guildId: string;
           channelId: string;
-          limit: number;
         };
       }
     ) {
       const { guildId, channelId } = action.payload;
       const slice = sub(state, guildId, channelId);
       slice.pending = true;
-      slice.lastLimit = action.payload.limit;
     },
     finishFetchingMessages(
       state,
@@ -91,28 +93,6 @@ export const Messages = createSlice({
       if (messages) {
         slice.messages = mergeMessages(slice.messages ?? [], messages);
       }
-
-      if (
-        messages?.length &&
-        slice.lastLimit &&
-        messages.length < slice.lastLimit
-      ) {
-        slice.reachedBeginning = true;
-      }
-    },
-    setAutoFetching(
-      state,
-      action: {
-        payload: {
-          guildId: string;
-          channelId: string;
-          isAutoFetching: boolean;
-        };
-      }
-    ) {
-      const { guildId, channelId, isAutoFetching } = action.payload;
-      const slice = sub(state, guildId, channelId);
-      slice.isAutoFetching = isAutoFetching;
     },
     unshiftMessage(
       state,
@@ -128,14 +108,29 @@ export const Messages = createSlice({
       const slice = sub(state, guildId, channelId);
       slice.messages = [message, ...(slice.messages ?? [])];
     },
+    setProperty: <P extends keyof SubState>(
+      state: WritableDraft<MessagesState>,
+      action: {
+        payload: {
+          guildId: string;
+          channelId: string;
+          key: P;
+          value: SubState[P];
+        };
+      }
+    ) => {
+      const { guildId, channelId, key, value } = action.payload;
+      const slice = sub(state, guildId, channelId);
+      slice[key] = value;
+    },
   },
 });
 
 const {
   startFetchingMessages,
   finishFetchingMessages,
-  setAutoFetching,
   unshiftMessage,
+  setProperty,
 } = Messages.actions;
 
 export const fetchOlderMessages =
@@ -152,7 +147,7 @@ export const fetchOlderMessages =
       ? slice.messages[slice.messages.length - 1]
       : undefined;
 
-    dispatch(startFetchingMessages({ guildId, channelId, limit }));
+    dispatch(startFetchingMessages({ guildId, channelId }));
     const [err, messages] = await fetchJSON(`/api/messages/fetch`, {
       guildId,
       channelId,
@@ -161,26 +156,82 @@ export const fetchOlderMessages =
         limit,
       },
     });
+
     dispatch(finishFetchingMessages({ guildId, channelId, messages, err }));
+
+    if (messages?.length && limit && messages.length < limit) {
+      dispatch(
+        setProperty({
+          guildId,
+          channelId,
+          key: "reachedBeginning",
+          value: true,
+        })
+      );
+    }
 
     if (analyze && messages) {
       dispatch(fetchAnalyses(messages));
     }
   };
 
-// Autofetch
+export const fetchNewerMessages =
+  (
+    guildId: string,
+    channelId: string,
+    { limit = 100, analyze = true }: { limit?: number; analyze?: boolean } = {}
+  ): AppThunk =>
+  async (dispatch, getState) => {
+    const slice = sub(getState().messages, guildId, channelId, false);
+    if (slice.pending) return;
+
+    const newest = slice.messages?.length ? slice.messages[0] : undefined;
+
+    dispatch(startFetchingMessages({ guildId, channelId }));
+    const [err, messages] = await fetchJSON(`/api/messages/fetch`, {
+      guildId,
+      channelId,
+      options: {
+        after: newest?.id,
+        limit,
+      },
+    });
+    dispatch(finishFetchingMessages({ guildId, channelId, messages, err }));
+
+    if (messages?.length && limit && messages.length < limit) {
+      dispatch(
+        setProperty({ guildId, channelId, key: "isUpToDate", value: true })
+      );
+      dispatch(subscribe(guildId, channelId));
+    }
+
+    if (analyze && messages) {
+      dispatch(fetchAnalyses(messages));
+    }
+  };
+
+// Subscribe/autofetch
 socket.on(
   "messages",
   (guildId: string, channelId: string, message: MessageData) => {
-    store.dispatch(unshiftMessage({ guildId, channelId, message }));
+    const slice = sub(store.getState().messages, guildId, channelId);
+    if (slice.isAutoFetching)
+      store.dispatch(unshiftMessage({ guildId, channelId, message }));
+    else if (slice.isUpToDate)
+      store.dispatch(
+        setProperty({ guildId, channelId, key: "isUpToDate", value: false })
+      );
   }
 );
-export const enableAutoFetch =
+
+export const subscribe =
   (guildId: string, channelId: string): AppThunk =>
   (dispatch, getState) => {
     const slice = sub(getState().messages, guildId, channelId, false);
-    if (slice.isAutoFetching) return;
-    dispatch(setAutoFetching({ guildId, channelId, isAutoFetching: true }));
+    if (slice.isSubscribed) return;
+    dispatch(
+      setProperty({ guildId, channelId, key: "isSubscribed", value: true })
+    );
 
     socket.emit("messages/subscribe", guildId, channelId);
     socket.on("messages/subscribe", ([err]) => {
@@ -188,18 +239,26 @@ export const enableAutoFetch =
     });
   };
 
-export const disableAutoFetch =
+export const unsubscribe =
   (guildId: string, channelId: string): AppThunk =>
   (dispatch, getState) => {
     const slice = sub(getState().messages, guildId, channelId, false);
-    if (!slice.isAutoFetching) return;
-    dispatch(setAutoFetching({ guildId, channelId, isAutoFetching: false }));
+    if (slice.isSubscribed) return;
+    dispatch(
+      setProperty({ guildId, channelId, key: "isSubscribed", value: false })
+    );
 
     socket.emit("messages/unsubscribe", guildId, channelId);
     socket.on("messages/unsubscribe", ([err]) => {
       if (err) throw err;
     });
   };
+
+export const enableAutoFetch = (guildId: string, channelId: string) =>
+  setProperty({ guildId, channelId, key: "isAutoFetching", value: true });
+
+export const disableAutoFetch = (guildId: string, channelId: string) =>
+  setProperty({ guildId, channelId, key: "isAutoFetching", value: false });
 
 export const selectMessages =
   (guildId: string, channelId: string) => (state: RootState) =>

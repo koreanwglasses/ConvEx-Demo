@@ -3,6 +3,7 @@ import { MessageData } from "../../../common/api-data-types";
 import {
   disableAutoFetch,
   enableAutoFetch,
+  fetchNewerMessages,
   fetchOlderMessages,
   selectMessages,
 } from "../../data/messages-slice";
@@ -34,7 +35,7 @@ export const ChannelVizGroup = ({
     messages?: MessageData[];
   }) => React.ReactNode;
 }) => {
-  const { messages, pending, reachedBeginning, isAutoFetching } =
+  const { messages, pending, reachedBeginning, isAutoFetching, isUpToDate } =
     useAppSelector(selectMessages(guildId, channelId));
 
   const dispatch = useAppDispatch();
@@ -59,11 +60,12 @@ export const ChannelVizGroup = ({
     }
 
     const hasScrolledToBottom = e.currentTarget.scrollTop > -10;
-    if (hasScrolledToBottom && !isAutoFetching) {
-      dispatch(enableAutoFetch(guildId, channelId));
+    if (hasScrolledToBottom) {
+      if (!isUpToDate) dispatch(fetchNewerMessages(guildId, channelId));
+      else if (!isAutoFetching) dispatch(enableAutoFetch(guildId, channelId));
     }
     const hasScrolledAwayFromBottom = e.currentTarget.scrollTop < -20;
-    if(hasScrolledAwayFromBottom && isAutoFetching) {
+    if (hasScrolledAwayFromBottom && isAutoFetching) {
       dispatch(disableAutoFetch(guildId, channelId));
     }
   };
