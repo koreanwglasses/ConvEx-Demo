@@ -224,7 +224,7 @@ socket.on(
   }
 );
 
-export const subscribe =
+const subscribe =
   (guildId: string, channelId: string): AppThunk =>
   (dispatch, getState) => {
     const slice = sub(getState().messages, guildId, channelId, false);
@@ -254,8 +254,15 @@ export const unsubscribe =
     });
   };
 
-export const enableAutoFetch = (guildId: string, channelId: string) =>
-  setProperty({ guildId, channelId, key: "isAutoFetching", value: true });
+export const enableAutoFetch =
+  (guildId: string, channelId: string): AppThunk =>
+  (dispatch, getState) => {
+    const slice = sub(getState().messages, guildId, channelId, false);
+    if (!slice.isSubscribed) dispatch(subscribe(guildId, channelId));
+    dispatch(
+      setProperty({ guildId, channelId, key: "isAutoFetching", value: true })
+    );
+  };
 
 export const disableAutoFetch = (guildId: string, channelId: string) =>
   setProperty({ guildId, channelId, key: "isAutoFetching", value: false });

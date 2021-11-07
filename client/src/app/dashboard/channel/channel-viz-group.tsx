@@ -6,6 +6,7 @@ import {
   fetchNewerMessages,
   fetchOlderMessages,
   selectMessages,
+  unsubscribe,
 } from "../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { VizGroupContainer } from "../../viz-scroller/viz-scroller";
@@ -21,6 +22,7 @@ export const ChannelVizGroup = ({
   guildId,
   children,
   groupKey,
+  hidden = false,
 }: {
   channelId: string;
   guildId: string;
@@ -34,9 +36,16 @@ export const ChannelVizGroup = ({
     pending: boolean;
     messages?: MessageData[];
   }) => React.ReactNode;
+  hidden?: boolean;
 }) => {
-  const { messages, pending, reachedBeginning, isAutoFetching, isUpToDate } =
-    useAppSelector(selectMessages(guildId, channelId));
+  const {
+    messages,
+    pending,
+    reachedBeginning,
+    isAutoFetching,
+    isUpToDate,
+    isSubscribed,
+  } = useAppSelector(selectMessages(guildId, channelId));
 
   const dispatch = useAppDispatch();
   useEffect(() => {
@@ -59,13 +68,11 @@ export const ChannelVizGroup = ({
       dispatch(fetchOlderMessages(guildId, channelId));
     }
 
-    const hasScrolledToBottom = e.currentTarget.scrollTop > -10;
+    const hasScrolledToBottom = e.currentTarget.scrollTop > -height;
     if (hasScrolledToBottom) {
       if (!isUpToDate) dispatch(fetchNewerMessages(guildId, channelId));
       else if (!isAutoFetching) dispatch(enableAutoFetch(guildId, channelId));
-    }
-    const hasScrolledAwayFromBottom = e.currentTarget.scrollTop < -20;
-    if (hasScrolledAwayFromBottom && isAutoFetching) {
+    } else if (isAutoFetching) {
       dispatch(disableAutoFetch(guildId, channelId));
     }
   };
@@ -83,6 +90,13 @@ export const ChannelVizGroup = ({
     const maxOffset = -oldestMessageOffset + 0.5 * height;
     dispatch(setMaxScrollOffset({ key: groupKey, offset: maxOffset }));
   }, [dispatch, oldestMessageOffset, groupKey, height]);
+
+  // Unsubscribe when hidden
+  useEffect(() => {
+    if (hidden && isSubscribed) {
+      dispatch(unsubscribe(guildId, channelId));
+    }
+  }, [hidden, isSubscribed, dispatch, guildId, channelId]);
 
   return (
     <VizGroupContainer groupKey={groupKey} onScroll={onScroll}>
