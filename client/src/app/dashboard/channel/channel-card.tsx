@@ -81,18 +81,8 @@ export const ChannelCard = ({
             channelId={channelId}
             groupKey={channelId}
           >
-            {({ reachedBeginning, messages }) => (
-              <>
-                <CompactChatView
-                  messages={messages}
-                  groupKey={channelId}
-                  guildId={guildId}
-                  channelId={channelId}
-                  reachedBeginning={reachedBeginning}
-                />
-                <AnalysisBars messages={messages} groupKey={channelId} />
-              </>
-            )}
+            <CompactChatView />
+            <AnalysisBars />
           </ChannelVizGroup>
         )}
       </Paper>

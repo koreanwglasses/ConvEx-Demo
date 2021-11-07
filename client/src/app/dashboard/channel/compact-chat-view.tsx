@@ -5,28 +5,22 @@ import { selectAnalysis } from "../../data/analyses-slice";
 import { fetchMember, selectMember } from "../../data/members-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
-import {
-  selectVizScrollerGroup,
-  setInitialOffset,
-  useInitialOffsets,
-} from "../../viz-scroller/viz-scroller-slice";
+import { selectVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
+import {
+  useInitialOffsets,
+  setInitialOffset,
+  useMessages,
+  useChannelVizGroup,
+} from "./channel-viz-group/channel-viz-group-slice";
+import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 
-export const CompactChatView = ({
-  guildId,
-  channelId,
-  messages,
-  groupKey,
-  reachedBeginning = false,
-}: {
-  messages?: MessageData[];
-  guildId: string;
-  channelId: string;
-  groupKey: string;
-  reachedBeginning?: boolean;
-}) => {
+export const CompactChatView = () => {
+  const groupKey = useGroupKey();
   const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
+  const { reachedBeginning } = useChannelVizGroup(groupKey);
   const initialOffsets = useInitialOffsets(groupKey);
+  const messages = useMessages(groupKey);
 
   // Only rendering default messages and replies for now
   const messagesToRender = useMemo(
@@ -34,7 +28,7 @@ export const CompactChatView = ({
       messages?.filter(
         (message) =>
           (message.type === "DEFAULT" || message.type === "REPLY") &&
-          -(initialOffsets?.(message.id) ?? 0) <
+          -(initialOffsets?.(message) ?? 0) <
             Math.ceil(1.5 + offset / (3 * height)) * 3 * height
       ),
     [height, initialOffsets, messages, offset]
@@ -91,8 +85,6 @@ export const CompactChatView = ({
           <CompactMessageGroup
             messages={group}
             groupKey={groupKey}
-            channelId={channelId}
-            guildId={guildId}
             key={group[0].id}
           />
         ))}
@@ -125,15 +117,13 @@ export const CompactChatView = ({
 };
 const CompactMessageGroup = ({
   messages,
-  guildId,
-  channelId,
   groupKey,
 }: {
   messages: MessageData[];
   groupKey: string;
-  guildId: string;
-  channelId: string;
 }) => {
+  const { guildId } = useChannelVizGroup(groupKey);
+
   const memberId = messages[0].authorId;
   const {
     member,
@@ -186,8 +176,6 @@ const CompactMessageGroup = ({
             <CompactMessageView
               message={message}
               groupKey={groupKey}
-              guildId={guildId}
-              channelId={channelId}
               key={message.id}
             />
           ))}
@@ -200,24 +188,21 @@ const CompactMessageGroup = ({
 const CompactMessageView = ({
   message,
   groupKey,
-  channelId,
-  guildId,
 }: {
   message: MessageData;
   groupKey: string;
-  channelId: string;
-  guildId: string;
 }) => {
+  const { guildId, channelId } = useChannelVizGroup(groupKey);
   const initialOffsets = useInitialOffsets(groupKey);
 
   const ref = useRef<HTMLDivElement>(null);
 
   const dispatch = useAppDispatch();
   useEffect(() => {
-    if (ref.current && !initialOffsets?.(message.id)) {
+    if (ref.current && !initialOffsets?.(message)) {
       dispatch(
         setInitialOffset({
-          key: groupKey,
+          groupKey: groupKey,
           itemKey: message.id,
           offset:
             ref.current.offsetTop +

@@ -5,14 +5,35 @@ import { AppThunk, RootState } from "../../../store";
 import * as MessagesSlice from "../../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../../hooks";
 import { shallowEqual } from "react-redux";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { arrayEqual } from "../../../../utils";
 
+type LayoutModes = "map" | "linear" | "transition";
+
 interface SubState {
+  guildId?: string;
+  channelId?: string;
+
   newestMessage?: MessageData;
   maxMessages: number;
   isStreaming: boolean;
   listener?: (message: MessageData) => void;
+
+  initialOffsets: {
+    mode: LayoutModes;
+
+    offsetMap: Record<string, number>;
+    version: number;
+
+    m: number;
+    b: number;
+
+    transitionFrom: LayoutModes;
+    transitionTo: LayoutModes;
+    t: number;
+    animationId?: number;
+    lastTime?: number;
+  };
 }
 
 // Define a type for the slice state
@@ -24,6 +45,18 @@ const sub = (state: ChannelVizGroupState, groupKey: string, write = true) => {
   const defaults = {
     isStreaming: false,
     maxMessages: 0,
+    initialOffsets: {
+      mode: "map",
+      offsetMap: {},
+      version: 0,
+
+      m: -21,
+      b: -10,
+
+      transitionFrom: "map",
+      transitionTo: "map",
+      t: 1,
+    },
   } as const;
   return state[groupKey] ?? (write ? (state[groupKey] = defaults) : defaults);
 };
@@ -58,15 +91,104 @@ export const ChannelVizGroups = createSlice({
       const slice = sub(state, groupKey);
       slice.maxMessages += amount;
     },
+    setInitialOffset(
+      state,
+      action: { payload: { groupKey: string; itemKey: string; offset: number } }
+    ) {
+      const { groupKey: key, itemKey, offset } = action.payload;
+      const substate = sub(state, key);
+      substate.initialOffsets.offsetMap[itemKey] = offset;
+      substate.initialOffsets.version++;
+    },
+    clearInitialOffsets(state, action: { payload: { groupKey: string } }) {
+      const { groupKey: key } = action.payload;
+      const substate = sub(state, key);
+      substate.initialOffsets.offsetMap = {};
+      substate.initialOffsets.version++;
+    },
+    setLayoutMode(
+      state,
+      action: { payload: { groupKey: string; mode: LayoutModes } }
+    ) {
+      const { groupKey: key, mode: type } = action.payload;
+      const substate = sub(state, key);
+      substate.initialOffsets.mode = type;
+    },
+    beginTransition(
+      state,
+      action: {
+        payload: { groupKey: string; transitionTo: LayoutModes };
+      }
+    ) {
+      const { groupKey: key, transitionTo } = action.payload;
+      const substate = sub(state, key);
+      substate.initialOffsets.transitionFrom = substate.initialOffsets.mode;
+      substate.initialOffsets.transitionTo = transitionTo;
+      substate.initialOffsets.t = 0;
+      substate.initialOffsets.mode = "transition";
+
+      substate.initialOffsets.lastTime = undefined;
+    },
+    doAnimationTick(
+      state,
+      action: { payload: { groupKey: string; time?: number } }
+    ) {
+      const { groupKey: key, time } = action.payload;
+      const { initialOffsets } = sub(state, key);
+
+      if (!initialOffsets.lastTime || !time) {
+        initialOffsets.lastTime = time;
+        return;
+      }
+
+      const dt = time - initialOffsets.lastTime;
+
+      initialOffsets.t = Math.min(initialOffsets.t + dt / 300, 1);
+      if (initialOffsets.t >= 1) {
+        initialOffsets.mode = initialOffsets.transitionTo;
+      }
+    },
+    setAnimationId(
+      state,
+      action: { payload: { groupKey: string; animationId?: number } }
+    ) {
+      const { groupKey: key, animationId } = action.payload;
+      const { initialOffsets } = sub(state, key);
+      initialOffsets.animationId = animationId;
+    },
   },
 });
 
-const { setProperty, adjustMaxMessages } = ChannelVizGroups.actions;
+const {
+  setProperty,
+  adjustMaxMessages,
+  setInitialOffset,
+  clearInitialOffsets,
+  setLayoutMode,
+  beginTransition,
+  doAnimationTick,
+  setAnimationId,
+} = ChannelVizGroups.actions;
 
-const fetchOlderMessages =
-  (guildId: string, channelId: string, groupKey: string): AppThunk =>
+export { setInitialOffset, clearInitialOffsets, setLayoutMode };
+
+const registerGroup =
+  (groupKey: string, guildId: string, channelId: string): AppThunk =>
+  (dispatch) => {
+    dispatch(setProperty({ groupKey, key: "guildId", value: guildId }));
+    dispatch(setProperty({ groupKey, key: "channelId", value: channelId }));
+  };
+
+export const fetchOlderMessages =
+  (groupKey: string): AppThunk =>
   async (dispatch, getState) => {
-    const group = sub(getState().channelVizGroups, groupKey, false);
+    const { newestMessage, maxMessages, guildId, channelId } = sub(
+      getState().channelVizGroups,
+      groupKey,
+      false
+    );
+    if (!guildId || !channelId)
+      throw new Error("Group must be registered before using fetch");
 
     const slice = MessagesSlice.sub(
       getState().messages,
@@ -77,27 +199,33 @@ const fetchOlderMessages =
 
     if (slice.reachedBeginning) return;
 
-    const i =
-      (group.newestMessage && slice.messages?.indexOf(group.newestMessage)) ??
-      0;
-    const j = i + group.maxMessages + 100;
+    const i = (newestMessage && slice.messages?.indexOf(newestMessage)) ?? 0;
+    const j = i + maxMessages + 100;
 
     if ((slice.messages?.length ?? 0) < j && !slice.pending) {
-      dispatch(MessagesSlice.fetchOlderMessages(guildId, channelId));
+      const messages = await dispatch(
+        MessagesSlice.fetchOlderMessages(guildId, channelId)
+      );
+
+      if (messages?.length && !newestMessage)
+        dispatch(
+          setProperty({ groupKey, key: "newestMessage", value: messages[0] })
+        );
     }
 
     dispatch(adjustMaxMessages({ groupKey, amount: 100 }));
   };
 
-const fetchNewerMessages =
-  (
-    guildId: string,
-    channelId: string,
-    groupKey: string,
-    limit = 100
-  ): AppThunk =>
+export const fetchNewerMessages =
+  (groupKey: string, limit = 100): AppThunk =>
   async (dispatch, getState) => {
-    const group = sub(getState().channelVizGroups, groupKey, false);
+    const { newestMessage, guildId, channelId } = sub(
+      getState().channelVizGroups,
+      groupKey,
+      false
+    );
+    if (!guildId || !channelId)
+      throw new Error("Group must be registered before using fetch");
 
     const slice = MessagesSlice.sub(
       getState().messages,
@@ -107,8 +235,7 @@ const fetchNewerMessages =
     );
 
     const i =
-      ((group.newestMessage && slice.messages?.indexOf(group.newestMessage)) ??
-        0) - limit;
+      ((newestMessage && slice.messages?.indexOf(newestMessage)) ?? 0) - limit;
 
     if (i >= 0) {
       dispatch(
@@ -134,95 +261,184 @@ const fetchNewerMessages =
     }
   };
 
-const startStreaming =
-  (guildId: string, channelId: string, groupKey: string): AppThunk =>
+export const startStreaming =
+  (groupKey: string): AppThunk =>
   (dispatch, getState) => {
-    const group = sub(getState().channelVizGroups, groupKey, false);
-    if (group.isStreaming) return;
+    const { isStreaming, guildId, channelId } = sub(
+      getState().channelVizGroups,
+      groupKey,
+      false
+    );
+    if (!guildId || !channelId)
+      throw new Error("Group must be registered before using stream");
+    if (isStreaming) return;
 
-    const listener = (message: MessageData) => {
-      dispatch(fetchNewerMessages(guildId, channelId, groupKey, 1));
+    const listener = () => {
+      dispatch(fetchNewerMessages(groupKey, 1));
     };
     dispatch(MessagesSlice.subscribe(guildId, channelId, listener));
     dispatch(setProperty({ groupKey, key: "listener", value: listener }));
     dispatch(setProperty({ groupKey, key: "isStreaming", value: true }));
   };
 
-const stopStreaming =
-  (guildId: string, channelId: string, groupKey: string): AppThunk =>
+export const stopStreaming =
+  (groupKey: string): AppThunk =>
   (dispatch, getState) => {
-    const group = sub(getState().channelVizGroups, groupKey, false);
-    if (!group.isStreaming) return;
+    const { isStreaming, listener, guildId, channelId } = sub(
+      getState().channelVizGroups,
+      groupKey,
+      false
+    );
+    if (!guildId || !channelId)
+      throw new Error("Group must be registered before using stream");
+    if (!isStreaming) return;
 
-    dispatch(MessagesSlice.unsubscribe(guildId, channelId, group.listener!));
+    dispatch(MessagesSlice.unsubscribe(guildId, channelId, listener!));
     dispatch(setProperty({ groupKey, key: "listener", value: undefined }));
     dispatch(setProperty({ groupKey, key: "isStreaming", value: false }));
   };
 
-const selectGroup =
-  (guildId: string, channelId: string, groupKey: string) =>
+export const transitionLayoutMode =
+  (groupKey: string, mode: LayoutModes): AppThunk =>
+  (dispatch, getState) => {
+    const {
+      initialOffsets: { animationId },
+    } = sub(getState().channelVizGroups, groupKey, false);
+    if (animationId) cancelAnimationFrame(animationId);
+
+    dispatch(beginTransition({ groupKey, transitionTo: mode }));
+
+    const animate = (time?: number) => {
+      const {
+        initialOffsets: { t },
+      } = sub(getState().channelVizGroups, groupKey, false);
+
+      if (t >= 1) {
+        dispatch(setAnimationId({ groupKey }));
+        return;
+      }
+
+      dispatch(doAnimationTick({ groupKey, time }));
+      const animationId = requestAnimationFrame(animate);
+      dispatch(setAnimationId({ groupKey, animationId }));
+    };
+    animate();
+  };
+
+export const selectInitialOffsets = (key: string) => (state: RootState) =>
+  sub(state.channelVizGroups, key, false).initialOffsets;
+
+export const useInitialOffsets = (key: string) => {
+  const initialOffsets = useAppSelector(
+    selectInitialOffsets(key),
+    shallowEqual
+  );
+  const messages = useAppSelector(selectMessages(key), arrayEqual);
+
+  const mapIO = useCallback(
+    (message: MessageData) => initialOffsets.offsetMap[message.id],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initialOffsets.version]
+  );
+  const linearIO = useCallback(
+    (message: MessageData) => {
+      if (!messages) return;
+      const i = messages.indexOf(message);
+      return initialOffsets.m! * i + initialOffsets.b!;
+    },
+    [initialOffsets.b, initialOffsets.m, messages]
+  );
+
+  return useMemo(
+    () =>
+      initialOffsets.mode === "map"
+        ? mapIO
+        : initialOffsets.mode === "linear"
+        ? linearIO
+        : undefined,
+    [initialOffsets.mode, linearIO, mapIO]
+  );
+};
+
+export const selectMessages = (key: string) => (state: RootState) => {
+  const group = sub(state.channelVizGroups, key, false);
+  if (!group.guildId || !group.channelId || !group.newestMessage) return;
+
+  const slice = MessagesSlice.sub(
+    state.messages,
+    group.guildId,
+    group.channelId,
+    false
+  );
+
+  const i = slice.messages?.indexOf(group.newestMessage) ?? 0;
+  const j = Math.min(i + group.maxMessages, slice.messages?.length ?? 0);
+
+  return slice.messages?.slice(i, j);
+};
+
+export const useMessages = (key: string) =>
+  useAppSelector(selectMessages(key), arrayEqual);
+
+export const selectChannelVizGroup =
+  (groupKey: string, guildId?: string, channelId?: string) =>
   (state: RootState) => {
-    const { newestMessage, maxMessages, isStreaming } = sub(
-      state.channelVizGroups,
-      groupKey,
-      false
-    );
+    const {
+      isStreaming,
+      newestMessage,
+      guildId: guildId_,
+      channelId: channelId_,
+    } = sub(state.channelVizGroups, groupKey, false);
+
+    if (guildId && guildId_ && guildId !== guildId_)
+      throw new Error("Guild ID in args does not match registered guild ID");
+    if (channelId && channelId_ && channelId !== channelId_)
+      throw new Error(
+        "Channel ID in args does not match registered channel ID"
+      );
+
+    if ((!guildId_ && !guildId) || (!channelId_ && !channelId))
+      throw new Error(
+        "Group is not registered and guildId or channelId was not passed as args."
+      );
 
     const {
       pending,
       reachedBeginning,
       isUpToDate: isUpToDate_,
       messages: messages_,
-    } = MessagesSlice.sub(state.messages, guildId, channelId, false);
-
-    const i = (newestMessage && messages_?.indexOf(newestMessage)) ?? 0;
-    const j = Math.min(i + maxMessages, messages_?.length ?? 0);
-
-    const messages = messages_?.slice(i, j);
+    } = MessagesSlice.sub(
+      state.messages,
+      guildId_ ?? guildId!,
+      channelId_ ?? channelId!,
+      false
+    );
 
     return {
-      messages,
+      guildId: guildId_ ?? guildId!,
+      channelId: channelId_ ?? channelId!,
       isStreaming,
-      isUpToDate: i === 0 && isUpToDate_,
+      isUpToDate: newestMessage === messages_?.[0] && isUpToDate_,
       pending,
       reachedBeginning,
-      isCreated: true,
+      isRegistered: guildId_ && channelId_,
     };
   };
 
 export const useChannelVizGroup = (
-  guildId: string,
-  channelId: string,
-  groupKey: string
+  groupKey: string,
+  guildId?: string,
+  channelId?: string
 ) => {
   const group = useAppSelector(
-    selectGroup(guildId, channelId, groupKey),
-    ({ messages: messagesL, ...l }, { messages: messagesR, ...r }) =>
-      (messagesL === messagesR ||
-        !!(messagesL && messagesR && arrayEqual(messagesL, messagesR))) &&
-      shallowEqual(l, r)
+    selectChannelVizGroup(groupKey, guildId, channelId),
+    shallowEqual
   );
   const dispatch = useAppDispatch();
-  return {
-    ...group,
-    fetchOlderMessages: useCallback(
-      () => dispatch(fetchOlderMessages(guildId, channelId, groupKey)),
-      [channelId, dispatch, groupKey, guildId]
-    ),
-    fetchNewerMessages: useCallback(
-      () => dispatch(fetchNewerMessages(guildId, channelId, groupKey)),
-      [channelId, dispatch, groupKey, guildId]
-    ),
+  if (!group.isRegistered && guildId && channelId)
+    dispatch(registerGroup(groupKey, guildId, channelId));
 
-    startStreaming: useCallback(
-      () => dispatch(startStreaming(guildId, channelId, groupKey)),
-      [channelId, dispatch, groupKey, guildId]
-    ),
-    stopStreaming: useCallback(
-      () => dispatch(stopStreaming(guildId, channelId, groupKey)),
-      [channelId, dispatch, groupKey, guildId]
-    ),
-  };
+  return group;
 };
 
 export default ChannelVizGroups.reducer;

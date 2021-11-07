@@ -1,14 +1,11 @@
-import { MessageData } from "../../../common/api-data-types";
 import * as d3 from "d3";
 import { useD3VizComponent } from "./d3-analysis-viz";
+import { useMessages } from "./channel-viz-group/channel-viz-group-slice";
+import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 
-export const AnalysisBars = ({
-  messages,
-  groupKey,
-}: {
-  messages?: MessageData[];
-  groupKey: string;
-}) => {
+export const AnalysisBars = () => {
+  const groupKey = useGroupKey();
+  const messages = useMessages(groupKey);
   const barHeight = 20;
   const D3VizComponent = useD3VizComponent(
     (svgRef) => {
@@ -34,7 +31,6 @@ export const AnalysisBars = ({
   return (
     <D3VizComponent
       messages={messages}
-      groupKey={groupKey}
       filterMargin={barHeight}
     />
   );

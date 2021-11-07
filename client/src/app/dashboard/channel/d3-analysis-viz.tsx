@@ -3,10 +3,7 @@ import { Box } from "@mui/system";
 import { MessageData } from "../../../common/api-data-types";
 import { useAppSelector } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
-import {
-  selectVizScrollerGroup,
-  useInitialOffsets,
-} from "../../viz-scroller/viz-scroller-slice";
+import { selectVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import {
   useCallback,
   useEffect,
@@ -16,6 +13,8 @@ import {
 } from "react";
 import { selectBatchAnalysis } from "../../data/analyses-slice";
 import { arrayEqual } from "../../../utils";
+import { useInitialOffsets } from "./channel-viz-group/channel-viz-group-slice";
+import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 
 type DrawArgs = {
   y: (message: MessageData) => number;
@@ -32,7 +31,6 @@ export const useD3VizComponent = <Selections extends Record<string, unknown>>(
     () =>
       (props: {
         messages?: MessageData[];
-        groupKey: string;
         filterMargin?: number;
       }) =>
         <D3Viz {...props} initialize={initialize} draw={draw} />,
@@ -44,20 +42,21 @@ export const useD3VizComponent = <Selections extends Record<string, unknown>>(
 
 const D3Viz = <Selections extends Record<string, unknown>>({
   messages,
-  groupKey,
   initialize,
   draw,
   filterMargin = 0,
 }: {
   messages?: MessageData[];
-  groupKey: string;
   initialize: (svgRef: SVGSVGElement) => Selections;
   draw: (args: DrawArgs & Selections) => void;
   filterMargin?: number;
 }) => {
+  const groupKey = useGroupKey();
+
   ////////////
   // LAYOUT //
   ////////////
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -116,11 +115,12 @@ const D3Viz = <Selections extends Record<string, unknown>>({
     if (!data_ || !width || !initialOffsets) return;
     if (!selections.current && !(selections.current = initialize_())) return;
 
-    const y = ({ id }: MessageData) => height * 3 + initialOffsets(id) + offset;
+    const y = (message: MessageData) =>
+      height * 3 + initialOffsets(message)! + offset;
 
     const data = data_.filter(
       ([message]) =>
-        initialOffsets(message.id) &&
+        initialOffsets(message) &&
         -filterMargin <= y(message) &&
         y(message) <= height * 3 + filterMargin
     );

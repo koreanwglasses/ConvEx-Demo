@@ -170,7 +170,7 @@ export const fetchOlderMessages =
     guildId: string,
     channelId: string,
     { limit = 100 }: { limit?: number } = {}
-  ): AppThunk<Promise<void>> =>
+  ): AppThunk<Promise<MessageData[]>> =>
   async (dispatch, getState) => {
     const slice = sub(getState().messages, guildId, channelId, false);
     if (slice.pending) return;
@@ -208,6 +208,8 @@ export const fetchOlderMessages =
     if (messages) {
       dispatch(fetchAnalyses(messages));
     }
+
+    return messages;
   };
 
 export const fetchNewerMessages =

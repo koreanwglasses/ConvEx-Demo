@@ -28,7 +28,9 @@ export const fetchJSON = async <T = any>(url: string, body?: any) => {
   return [null, result as T] as const;
 };
 
-export const arrayEqual = (left: unknown[], right: unknown[]) => {
+export const arrayEqual = (left?: unknown[], right?: unknown[]) => {
+  if (left === right) return true;
+  if (!left || !right) return false;
   if (left.length !== right.length) return false;
   for (let i = 0; i < left.length; i++) {
     if (!shallowEqual(left[i], right[i])) return false;

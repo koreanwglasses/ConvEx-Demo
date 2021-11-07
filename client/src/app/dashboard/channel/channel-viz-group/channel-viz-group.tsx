@@ -1,14 +1,25 @@
-import React, { useEffect } from "react";
-import { MessageData } from "../../../../common/api-data-types";
+import React, { createContext, useContext, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "../../../hooks";
 import { VizGroupContainer } from "../../../viz-scroller/viz-scroller";
 import {
-  clearInitialOffsets,
   selectVizScrollerGroup,
   setMaxScrollOffset,
-  useInitialOffsets,
 } from "../../../viz-scroller/viz-scroller-slice";
-import { useChannelVizGroup } from "./channel-viz-group-slice";
+import {
+  clearInitialOffsets,
+  fetchNewerMessages,
+  fetchOlderMessages,
+  startStreaming,
+  stopStreaming,
+  useChannelVizGroup,
+  useInitialOffsets,
+  useMessages,
+} from "./channel-viz-group-slice";
+
+const ChannelVizGroupContext = createContext<{ groupKey: string }>({
+  groupKey: "",
+});
+export const useGroupKey = () => useContext(ChannelVizGroupContext).groupKey;
 
 export const ChannelVizGroup = ({
   channelId,
@@ -16,71 +27,54 @@ export const ChannelVizGroup = ({
   children,
   groupKey,
   hidden = false,
-}: {
+}: React.PropsWithChildren<{
   channelId: string;
   guildId: string;
   groupKey: string;
-  children: ({
-    reachedBeginning,
-    messages,
-    pending,
-  }: {
-    reachedBeginning: boolean;
-    pending: boolean;
-    messages?: MessageData[];
-  }) => React.ReactNode;
   hidden?: boolean;
-}) => {
-  const {
-    messages,
-    pending,
-    reachedBeginning,
-    isStreaming,
-    isUpToDate,
-    fetchOlderMessages,
-    fetchNewerMessages,
-    startStreaming,
-    stopStreaming,
-  } = useChannelVizGroup(guildId, channelId, groupKey);
+}>) => {
+  const { pending, reachedBeginning, isStreaming, isUpToDate } =
+    useChannelVizGroup(groupKey, guildId, channelId);
+
+  const messages = useMessages(groupKey);
+  const initialOffsets = useInitialOffsets(groupKey);
+  const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
 
   const dispatch = useAppDispatch();
   useEffect(() => {
     if (!messages && !pending) {
-      fetchOlderMessages();
-      startStreaming();
+      dispatch(fetchOlderMessages(groupKey));
+      dispatch(startStreaming(groupKey));
     }
-  }, [dispatch, fetchOlderMessages, messages, pending, startStreaming]);
-
-  const initialOffsets = useInitialOffsets(groupKey);
-  const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
+  }, [dispatch, groupKey, messages, pending]);
 
   const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
     const hasScrolledToTop =
       initialOffsets &&
       messages?.length &&
       e.currentTarget.scrollTop -
-        initialOffsets(messages[messages.length - 1].id) <
+        initialOffsets(messages[messages.length - 1])! <
         height;
     if (hasScrolledToTop && !pending && !reachedBeginning) {
-      fetchOlderMessages();
+      dispatch(fetchOlderMessages(groupKey));
     }
 
     const hasScrolledToBottom = e.currentTarget.scrollTop > -height;
     if (hasScrolledToBottom) {
-      if (!isUpToDate) fetchNewerMessages();
-      else if (!isStreaming) startStreaming();
+      if (!isUpToDate) dispatch(fetchNewerMessages(groupKey));
+      else if (!isStreaming) dispatch(startStreaming(groupKey));
     } else if (isStreaming) {
-      stopStreaming();
+      dispatch(stopStreaming(groupKey));
     }
   };
 
   const newestMessage = messages?.length && messages[0];
   useEffect(() => {
-    dispatch(clearInitialOffsets({ key: groupKey }));
+    dispatch(clearInitialOffsets({ groupKey: groupKey }));
   }, [dispatch, groupKey, newestMessage]);
 
   const oldestMessageOffset =
-    messages?.length && initialOffsets?.(messages[messages.length - 1].id);
+    messages?.length && initialOffsets?.(messages[messages.length - 1]);
   // Stop scrolling when we reach the end
   useEffect(() => {
     if (!oldestMessageOffset) return;
@@ -91,14 +85,15 @@ export const ChannelVizGroup = ({
   // Unsubscribe when hidden
   useEffect(() => {
     if (hidden && isStreaming) {
-      stopStreaming();
+      dispatch(stopStreaming(groupKey));
     }
-  }, [stopStreaming, hidden, isStreaming]);
+  }, [hidden, isStreaming, dispatch, groupKey]);
 
   return (
     <VizGroupContainer groupKey={groupKey} onScroll={onScroll}>
-      {(pending || messages) &&
-        children({ reachedBeginning, messages, pending })}
+      <ChannelVizGroupContext.Provider value={{ groupKey }}>
+        {children}
+      </ChannelVizGroupContext.Provider>
     </VizGroupContainer>
   );
 };
