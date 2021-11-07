@@ -11,7 +11,7 @@ import React, { useEffect, useState } from "react";
 import { selectChannelById } from "../../data/channels-slice";
 import { useAppSelector } from "../../hooks";
 import { AnalysisBars } from "./analysis-bars";
-import { ChannelVizGroup } from "./channel-viz-group";
+import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
 import { CompactChatView } from "./compact-chat-view";
 
 export const ChannelCard = ({

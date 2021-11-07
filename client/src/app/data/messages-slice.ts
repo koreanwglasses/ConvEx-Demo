@@ -1,10 +1,10 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { AppThunk, RootState, store } from "../store";
+import { AppDispatch, AppThunk, RootState, store } from "../store";
 import { MessageData } from "../../common/api-data-types";
 import { fetchJSON } from "../../utils";
-import { fetchAnalyses } from "./analyses-slice";
 import socket from "../sockets";
 import { WritableDraft } from "immer/dist/types/types-external";
+import { fetchAnalyses } from "./analyses-slice";
 
 interface SubState {
   pending: boolean;
@@ -12,8 +12,7 @@ interface SubState {
   lastErr?: any;
   reachedBeginning: boolean;
   isUpToDate: boolean;
-  isAutoFetching: boolean;
-  isSubscribed: boolean;
+  listeners: ((message: MessageData) => void)[];
 }
 
 // Define a type for the slice state
@@ -22,7 +21,7 @@ interface MessagesState {
 }
 
 const key = (guildId: string, channelId: string) => `${guildId}/${channelId}`;
-const sub = (
+export const sub = (
   state: MessagesState,
   guildId: string,
   channelId: string,
@@ -31,10 +30,9 @@ const sub = (
   const defaults = {
     pending: false,
     reachedBeginning: false,
-    isAutoFetching: false,
     isUpToDate: false,
-    isSubscribed: false,
-  } as const;
+    listeners: [],
+  };
   return (
     state[key(guildId, channelId)] ??
     (write ? (state[key(guildId, channelId)] = defaults) : defaults)
@@ -108,7 +106,39 @@ export const Messages = createSlice({
       const slice = sub(state, guildId, channelId);
       slice.messages = [message, ...(slice.messages ?? [])];
     },
-    setProperty: <P extends keyof SubState>(
+    addListener(
+      state,
+      action: {
+        payload: {
+          guildId: string;
+          channelId: string;
+          listener: (message: MessageData) => void;
+        };
+      }
+    ) {
+      const { guildId, channelId, listener } = action.payload;
+      const slice = sub(state, guildId, channelId);
+      slice.listeners.push(listener);
+    },
+    removeListener(
+      state,
+      action: {
+        payload: {
+          guildId: string;
+          channelId: string;
+          listener: (message: MessageData) => void;
+        };
+      }
+    ) {
+      const { guildId, channelId, listener } = action.payload;
+      const slice = sub(state, guildId, channelId);
+      const i = slice.listeners.indexOf(listener);
+      if (i < 0) return;
+      slice.listeners.splice(i, 1);
+
+      if (slice.listeners.length === 0) slice.isUpToDate = false;
+    },
+    setProperty<P extends keyof SubState>(
       state: WritableDraft<MessagesState>,
       action: {
         payload: {
@@ -118,7 +148,7 @@ export const Messages = createSlice({
           value: SubState[P];
         };
       }
-    ) => {
+    ) {
       const { guildId, channelId, key, value } = action.payload;
       const slice = sub(state, guildId, channelId);
       slice[key] = value;
@@ -131,14 +161,16 @@ const {
   finishFetchingMessages,
   unshiftMessage,
   setProperty,
+  addListener,
+  removeListener,
 } = Messages.actions;
 
 export const fetchOlderMessages =
   (
     guildId: string,
     channelId: string,
-    { limit = 100, analyze = true }: { limit?: number; analyze?: boolean } = {}
-  ): AppThunk =>
+    { limit = 100 }: { limit?: number } = {}
+  ): AppThunk<Promise<void>> =>
   async (dispatch, getState) => {
     const slice = sub(getState().messages, guildId, channelId, false);
     if (slice.pending) return;
@@ -156,10 +188,13 @@ export const fetchOlderMessages =
         limit,
       },
     });
-
     dispatch(finishFetchingMessages({ guildId, channelId, messages, err }));
 
-    if (messages?.length && limit && messages.length < limit) {
+    if (!oldest && messages) {
+      dispatch(loadedLatestMessage(guildId, channelId));
+    }
+
+    if (messages && messages.length < limit) {
       dispatch(
         setProperty({
           guildId,
@@ -170,7 +205,7 @@ export const fetchOlderMessages =
       );
     }
 
-    if (analyze && messages) {
+    if (messages) {
       dispatch(fetchAnalyses(messages));
     }
   };
@@ -179,8 +214,8 @@ export const fetchNewerMessages =
   (
     guildId: string,
     channelId: string,
-    { limit = 100, analyze = true }: { limit?: number; analyze?: boolean } = {}
-  ): AppThunk =>
+    { limit = 100 }: { limit?: number } = {}
+  ): AppThunk<Promise<MessageData[] | undefined>> =>
   async (dispatch, getState) => {
     const slice = sub(getState().messages, guildId, channelId, false);
     if (slice.pending) return;
@@ -198,74 +233,90 @@ export const fetchNewerMessages =
     });
     dispatch(finishFetchingMessages({ guildId, channelId, messages, err }));
 
-    if (messages?.length && limit && messages.length < limit) {
-      dispatch(
-        setProperty({ guildId, channelId, key: "isUpToDate", value: true })
-      );
-      dispatch(subscribe(guildId, channelId));
+    if (messages && messages.length < limit) {
+      dispatch(loadedLatestMessage(guildId, channelId));
     }
 
-    if (analyze && messages) {
+    if (messages) {
       dispatch(fetchAnalyses(messages));
+    }
+
+    return messages;
+  };
+
+const loadedLatestMessage =
+  (guildId: string, channelId: string): AppThunk =>
+  (dispatch, getState) => {
+    const slice = sub(getState().messages, guildId, channelId, false);
+    dispatch(
+      setProperty({
+        guildId,
+        channelId,
+        key: "isUpToDate",
+        value: true,
+      })
+    );
+
+    if (slice.listeners.length === 0) {
+      const keepAliveListener = () => {
+        dispatch(unsubscribe(guildId, channelId, keepAliveListener));
+      };
+      dispatch(subscribe(guildId, channelId, keepAliveListener));
     }
   };
 
-// Subscribe/autofetch
 socket.on(
   "messages",
   (guildId: string, channelId: string, message: MessageData) => {
     const slice = sub(store.getState().messages, guildId, channelId);
-    if (slice.isAutoFetching)
+    slice.listeners.forEach((listener) => listener(message));
+    if (slice.isUpToDate) {
       store.dispatch(unshiftMessage({ guildId, channelId, message }));
-    else if (slice.isUpToDate)
-      store.dispatch(
-        setProperty({ guildId, channelId, key: "isUpToDate", value: false })
-      );
+      (store.dispatch as AppDispatch)(fetchAnalyses([message]));
+    }
   }
 );
 
-const subscribe =
-  (guildId: string, channelId: string): AppThunk =>
+export const subscribe =
+  (
+    guildId: string,
+    channelId: string,
+    listener: (message: MessageData) => void
+  ): AppThunk =>
   (dispatch, getState) => {
     const slice = sub(getState().messages, guildId, channelId, false);
-    if (slice.isSubscribed) return;
-    dispatch(
-      setProperty({ guildId, channelId, key: "isSubscribed", value: true })
-    );
+    if (slice.listeners.indexOf(listener) !== -1) return;
 
-    socket.emit("messages/subscribe", guildId, channelId);
-    socket.on("messages/subscribe", ([err]) => {
-      if (err) throw err;
-    });
+    if (slice.listeners.length === 0) {
+      socket.emit("messages/subscribe", guildId, channelId);
+      socket.on("messages/subscribe", ([err]) => {
+        if (err) throw err;
+      });
+    }
+
+    dispatch(addListener({ guildId, channelId, listener }));
   };
 
 export const unsubscribe =
-  (guildId: string, channelId: string): AppThunk =>
+  (
+    guildId: string,
+    channelId: string,
+    listener: (message: MessageData) => void
+  ): AppThunk =>
   (dispatch, getState) => {
     const slice = sub(getState().messages, guildId, channelId, false);
-    if (slice.isSubscribed) return;
-    dispatch(
-      setProperty({ guildId, channelId, key: "isSubscribed", value: false })
-    );
+    const i = slice.listeners.indexOf(listener);
+    if (i === -1) return;
 
-    socket.emit("messages/unsubscribe", guildId, channelId);
-    socket.on("messages/unsubscribe", ([err]) => {
-      if (err) throw err;
-    });
+    if (slice.listeners.length === 1) {
+      socket.emit("messages/unsubscribe", guildId, channelId);
+      socket.on("messages/unsubscribe", ([err]) => {
+        if (err) throw err;
+      });
+    }
+
+    dispatch(removeListener({ guildId, channelId, listener }));
   };
-
-export const enableAutoFetch =
-  (guildId: string, channelId: string): AppThunk =>
-  (dispatch, getState) => {
-    const slice = sub(getState().messages, guildId, channelId, false);
-    if (!slice.isSubscribed) dispatch(subscribe(guildId, channelId));
-    dispatch(
-      setProperty({ guildId, channelId, key: "isAutoFetching", value: true })
-    );
-  };
-
-export const disableAutoFetch = (guildId: string, channelId: string) =>
-  setProperty({ guildId, channelId, key: "isAutoFetching", value: false });
 
 export const selectMessages =
   (guildId: string, channelId: string) => (state: RootState) =>

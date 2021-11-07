@@ -1,21 +1,14 @@
 import React, { useEffect } from "react";
-import { MessageData } from "../../../common/api-data-types";
-import {
-  disableAutoFetch,
-  enableAutoFetch,
-  fetchNewerMessages,
-  fetchOlderMessages,
-  selectMessages,
-  unsubscribe,
-} from "../../data/messages-slice";
-import { useAppDispatch, useAppSelector } from "../../hooks";
-import { VizGroupContainer } from "../../viz-scroller/viz-scroller";
+import { MessageData } from "../../../../common/api-data-types";
+import { useAppDispatch, useAppSelector } from "../../../hooks";
+import { VizGroupContainer } from "../../../viz-scroller/viz-scroller";
 import {
   clearInitialOffsets,
   selectVizScrollerGroup,
   setMaxScrollOffset,
   useInitialOffsets,
-} from "../../viz-scroller/viz-scroller-slice";
+} from "../../../viz-scroller/viz-scroller-slice";
+import { useChannelVizGroup } from "./channel-viz-group-slice";
 
 export const ChannelVizGroup = ({
   channelId,
@@ -42,17 +35,21 @@ export const ChannelVizGroup = ({
     messages,
     pending,
     reachedBeginning,
-    isAutoFetching,
+    isStreaming,
     isUpToDate,
-    isSubscribed,
-  } = useAppSelector(selectMessages(guildId, channelId));
+    fetchOlderMessages,
+    fetchNewerMessages,
+    startStreaming,
+    stopStreaming,
+  } = useChannelVizGroup(guildId, channelId, groupKey);
 
   const dispatch = useAppDispatch();
   useEffect(() => {
     if (!messages && !pending) {
-      dispatch(fetchOlderMessages(guildId, channelId));
+      fetchOlderMessages();
+      startStreaming();
     }
-  }, [messages, pending, dispatch, guildId, channelId]);
+  }, [dispatch, fetchOlderMessages, messages, pending, startStreaming]);
 
   const initialOffsets = useInitialOffsets(groupKey);
   const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
@@ -65,15 +62,15 @@ export const ChannelVizGroup = ({
         initialOffsets(messages[messages.length - 1].id) <
         height;
     if (hasScrolledToTop && !pending && !reachedBeginning) {
-      dispatch(fetchOlderMessages(guildId, channelId));
+      fetchOlderMessages();
     }
 
     const hasScrolledToBottom = e.currentTarget.scrollTop > -height;
     if (hasScrolledToBottom) {
-      if (!isUpToDate) dispatch(fetchNewerMessages(guildId, channelId));
-      else if (!isAutoFetching) dispatch(enableAutoFetch(guildId, channelId));
-    } else if (isAutoFetching) {
-      dispatch(disableAutoFetch(guildId, channelId));
+      if (!isUpToDate) fetchNewerMessages();
+      else if (!isStreaming) startStreaming();
+    } else if (isStreaming) {
+      stopStreaming();
     }
   };
 
@@ -93,10 +90,10 @@ export const ChannelVizGroup = ({
 
   // Unsubscribe when hidden
   useEffect(() => {
-    if (hidden && isSubscribed) {
-      dispatch(unsubscribe(guildId, channelId));
+    if (hidden && isStreaming) {
+      stopStreaming();
     }
-  }, [hidden, isSubscribed, dispatch, guildId, channelId]);
+  }, [stopStreaming, hidden, isStreaming]);
 
   return (
     <VizGroupContainer groupKey={groupKey} onScroll={onScroll}>

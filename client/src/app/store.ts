@@ -7,6 +7,7 @@ import channels from "./data/channels-slice";
 import messages from "./data/messages-slice";
 import analyses from "./data/analyses-slice";
 import vizScrollers from "./viz-scroller/viz-scroller-slice";
+import channelVizGroups from "./dashboard/channel/channel-viz-group/channel-viz-group-slice";
 
 export const store = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
     messages,
     analyses,
     vizScrollers,
+    channelVizGroups,
   },
   middleware: [thunk] as const,
 });
