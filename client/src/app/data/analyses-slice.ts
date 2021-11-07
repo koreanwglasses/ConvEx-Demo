@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import type { RootState, AppThunk } from "../store";
-import { AnalysisData } from "../../common/api-data-types";
+import { AnalysisData, MessageData } from "../../common/api-data-types";
 import { fetchJSON } from "../../utils";
 
 // Define a type for the slice state
@@ -67,16 +67,20 @@ export const Members = createSlice({
 const { startFetchingAnalyses, finishFetchingAnalyses } = Members.actions;
 
 export const fetchAnalyses =
-  (
-    messageIds: { guildId: string; channelId: string; messageId: string }[],
-    invalidate = false
-  ): AppThunk =>
+  (messages: MessageData[], invalidate = false): AppThunk =>
   async (dispatch, getState) => {
     const slice = getState().analyses;
 
-    const messageIdsToFetch = messageIds.filter(
-      (id) => !slice[key(id)]?.pending && (invalidate || !slice[key(id)]?.valid)
-    );
+    const messageIdsToFetch = messages
+      .map(({ guildId, channelId, id }) => ({
+        guildId,
+        channelId,
+        messageId: id,
+      }))
+      .filter(
+        (id) =>
+          !slice[key(id)]?.pending && (invalidate || !slice[key(id)]?.valid)
+      );
 
     const batchSize = 100;
     for (let i = 0; i < messageIdsToFetch.length; i += batchSize) {
@@ -103,11 +107,14 @@ export const fetchAnalyses =
   };
 
 export const selectBatchAnalysis =
-  (messageIds: { guildId: string; channelId: string; messageId: string }[]) =>
-  (state: RootState) =>
-    messageIds.map(
-      (id) => state.analyses[key(id)] ?? { pending: false, valid: false }
-    );
+  (messages: MessageData[]) => (state: RootState) =>
+    messages
+      .map(({ guildId, channelId, id }) => ({
+        guildId,
+        channelId,
+        messageId: id,
+      }))
+      .map((id) => state.analyses[key(id)] ?? { pending: false, valid: false });
 
 export const selectAnalysis =
   (guildId: string, channelId: string, messageId: string) =>

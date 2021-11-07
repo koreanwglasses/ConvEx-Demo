@@ -15,6 +15,7 @@ export interface UserData {
 
 export interface MemberData {
   id: string;
+  guildId: string;
   user: UserData;
   displayAvatarURL: string;
   displayHexColor: string;
@@ -22,16 +23,19 @@ export interface MemberData {
 
 export interface ChannelData {
   id: string;
+  guildId: string;
   name: string;
 }
 
 export interface MessageData {
   id: string;
+  guildId: string;
+  channelId: string;
   content: string;
   cleanContent: string;
   createdTimestamp: number;
   editTimestamp: number;
-  authorID: string;
+  authorId: string;
   type: MessageType;
   embeds: EmbedData[];
   attachments: { [id: string]: AttachmentData };

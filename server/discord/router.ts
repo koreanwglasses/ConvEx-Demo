@@ -15,10 +15,9 @@ import {
 } from "./model";
 
 const router = Router();
-
 router.use(requireAuthenticated());
 
-router.get(
+router.post(
   "/guilds/list",
   asyncHandler(async (req, res) => {
     const user = req.user as User;
@@ -35,13 +34,13 @@ router.get(
   })
 );
 
-router.get(
-  "/channels/:guildId/list",
+router.post(
+  "/channels/list",
   requireModeratorAccess(),
   asyncHandler(async (req, res) => {
     const user = req.user as User;
 
-    const { guildId } = req.params;
+    const { guildId } = req.body;
 
     const channels__ = await fetchGuildTextChannels(guildId);
     const channels_ = channels__.map((channel) =>
@@ -56,11 +55,10 @@ router.get(
 );
 
 router.post(
-  "/messages/:guildId/:channelId/fetch",
+  "/messages/fetch",
   requireModeratorAccess(),
   asyncHandler(async (req, res) => {
-    const { guildId, channelId } = req.params;
-    const options = req.body as ChannelLogsQueryOptions;
+    const { guildId, channelId, options = undefined } = req.body;
 
     const messages = await fetchMessages(guildId, channelId, options);
 
@@ -68,7 +66,7 @@ router.post(
   })
 );
 
-router.get(
+router.post(
   "/users/current",
   asyncHandler(async (req, res) => {
     const { id } = req.user as User;
@@ -77,11 +75,11 @@ router.get(
   })
 );
 
-router.get(
-  "/members/:guildId/:memberId",
+router.post(
+  "/members",
   requireModeratorAccess(),
   asyncHandler(async (req, res) => {
-    const { guildId, memberId } = req.params;
+    const { guildId, memberId } = req.body;
     const member = await fetchMember(guildId, memberId);
     res.send(member);
   })

@@ -1,4 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { shallowEqual } from "react-redux";
+import { useAppSelector } from "../hooks";
 import type { RootState } from "../store";
 
 interface SubState {
@@ -8,6 +10,7 @@ interface SubState {
   initialOffsets: {
     type: "map";
     offsetMap: Record<string, number>;
+    version: number;
   };
 }
 
@@ -23,6 +26,7 @@ const sub = (state: VizScrollersState, key: string, write = true) => {
     initialOffsets: {
       type: "map",
       offsetMap: {},
+      version: 0,
     },
   } as const;
   return state[key] ?? (write ? (state[key] = defaults) : defaults);
@@ -58,11 +62,13 @@ export const VizScrollers = createSlice({
       const { key, itemKey, offset } = action.payload;
       const substate = sub(state, key);
       substate.initialOffsets.offsetMap[itemKey] = offset;
+      substate.initialOffsets.version++;
     },
     clearInitialOffsets(state, action: { payload: { key: string } }) {
       const { key } = action.payload;
       const substate = sub(state, key);
       substate.initialOffsets.offsetMap = {};
+      substate.initialOffsets.version++;
     },
     setMaxScrollOffset(
       state,
@@ -85,8 +91,14 @@ export const {
 export const selectVizScrollerGroup = (key: string) => (state: RootState) =>
   sub(state.vizScrollers, key, false);
 
-export const selectInitialOffsets = (key: string) => (state: RootState) => {
-  const initialOffsets = sub(state.vizScrollers, key, false).initialOffsets;
+export const selectInitialOffsets = (key: string) => (state: RootState) =>
+  sub(state.vizScrollers, key, false).initialOffsets;
+
+export const useInitialOffsets = (key: string) => {
+  const initialOffsets = useAppSelector(
+    selectInitialOffsets(key),
+    shallowEqual
+  );
   return initialOffsets.type === "map"
     ? (itemKey: string) => initialOffsets.offsetMap[itemKey]
     : undefined;

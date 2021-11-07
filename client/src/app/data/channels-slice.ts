@@ -59,7 +59,7 @@ export const fetchChannels =
     if (!invalidate && state.valid) return;
 
     dispatch(startFetchingChannels({ guildId }));
-    const [err, channels] = await fetchJSON(`/api/channels/${guildId}/list`);
+    const [err, channels] = await fetchJSON(`/api/channels/list`, { guildId });
     dispatch(finishFetchingChannels({ guildId, channels, err }));
   };
 

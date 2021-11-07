@@ -1,14 +1,10 @@
 import { Box, SxProps } from "@mui/system";
-import React, { forwardRef, UIEvent } from "react";
+import React, { forwardRef, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "../hooks";
 import {
   selectVizScrollerGroup,
   adjustScrollOffset,
 } from "./viz-scroller-slice";
-
-export interface VizScrollHandler {
-  (event: UIEvent<HTMLDivElement> & { scrollFromTop: number }): void;
-}
 
 export const VizGroupContainer = ({
   groupKey,
@@ -16,7 +12,7 @@ export const VizGroupContainer = ({
   children,
 }: React.PropsWithChildren<{
   groupKey: string;
-  onScroll?: VizScrollHandler;
+  onScroll?: React.UIEventHandler<HTMLDivElement>;
   fixedBaseline?: boolean;
 }>) => {
   const { height, offset, maxScrollOffset } = useAppSelector(
@@ -24,31 +20,35 @@ export const VizGroupContainer = ({
   );
 
   const dispatch = useAppDispatch();
+  const computeOffset = useMemo(
+    () => (ref: HTMLDivElement) => {
+      const scrollFromTop =
+        ref.scrollHeight + ref.scrollTop - ref.clientHeight - height;
+      if (
+        scrollFromTop < height / 2 &&
+        (!maxScrollOffset || offset + 3 * height < maxScrollOffset)
+      ) {
+        dispatch(
+          adjustScrollOffset({
+            key: groupKey,
+            amount: height / 2,
+          })
+        );
+      } else if (scrollFromTop > (3 * height) / 2 && offset > 0) {
+        dispatch(
+          adjustScrollOffset({
+            key: groupKey,
+            amount: -height / 2,
+          })
+        );
+      }
+    },
+    [dispatch, groupKey, height, maxScrollOffset, offset]
+  );
+
   const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
-    const scrollFromTop =
-      e.currentTarget.scrollHeight +
-      e.currentTarget.scrollTop -
-      e.currentTarget.clientHeight -
-      height;
-    if (
-      scrollFromTop < height / 2 &&
-      (!maxScrollOffset || offset + 3 * height < maxScrollOffset)
-    ) {
-      dispatch(
-        adjustScrollOffset({
-          key: groupKey,
-          amount: height / 2,
-        })
-      );
-    } else if (scrollFromTop > (3 * height) / 2 && offset > 0) {
-      dispatch(
-        adjustScrollOffset({
-          key: groupKey,
-          amount: -height / 2,
-        })
-      );
-    }
-    onScroll_ && onScroll_(Object.assign(e, { scrollFromTop }));
+    computeOffset(e.currentTarget);
+    onScroll_ && onScroll_(e);
   };
 
   return (
@@ -70,7 +70,10 @@ export const VizGroupContainer = ({
           flexShrink: 0,
           display: "flex",
           alignItems: "flex-start",
-          height: 4 * height + offset,
+          height: Math.min(
+            4 * height + offset,
+            maxScrollOffset ?? Number.POSITIVE_INFINITY
+          ),
         }}
       >
         {children}
@@ -108,16 +111,14 @@ export const VizScroller = forwardRef(
           display: "flex",
           flexFlow: "column-reverse",
           position: "relative",
+          top: height,
           ...sx,
         }}
         style={{
           height: fixedBaseline ? 3 * height + offset : undefined,
-          top: Math.min(
-            maxScrollOffset
-              ? maxScrollOffset - 3 * height - offset
-              : Number.POSITIVE_INFINITY,
-            height
-          ),
+          top: maxScrollOffset
+            ? Math.min(maxScrollOffset - 3 * height - offset, height)
+            : undefined,
         }}
         ref={ref}
       >

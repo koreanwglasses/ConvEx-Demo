@@ -66,9 +66,10 @@ export const fetchMember =
     if (!invalidate && state.valid) return;
 
     dispatch(startFetchingMember({ guildId, memberId }));
-    const [err, member] = await fetchJSON(
-      `/api/members/${guildId}/${memberId}`
-    );
+    const [err, member] = await fetchJSON(`/api/members`, {
+      guildId,
+      memberId,
+    });
     dispatch(finishFetchingMember({ guildId, memberId, member, err }));
   };
 

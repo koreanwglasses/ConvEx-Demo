@@ -1,14 +1,14 @@
 import { Avatar, Box, CircularProgress, Typography } from "@mui/material";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MessageData } from "../../../common/api-data-types";
 import { selectAnalysis } from "../../data/analyses-slice";
 import { fetchMember, selectMember } from "../../data/members-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
 import {
-  selectInitialOffsets,
   selectVizScrollerGroup,
   setInitialOffset,
+  useInitialOffsets,
 } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
 
@@ -25,35 +25,53 @@ export const CompactChatView = ({
   groupKey: string;
   reachedBeginning?: boolean;
 }) => {
-  // Only rendering default messages and replies for now
-  const messagesToRender = messages?.filter(
-    (message) => message.type === "DEFAULT" || message.type === "REPLY"
-  );
+  const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
+  const initialOffsets = useInitialOffsets(groupKey);
 
-  const groupingThreshold = 1000 * 60 * 5;
-  const messageGroups = messagesToRender?.reduce((groups, message) => {
-    if (groups.length === 0) {
+  // Only rendering default messages and replies for now
+  const messagesToRender = useMemo(
+    () =>
+      messages?.filter(
+        (message) =>
+          (message.type === "DEFAULT" || message.type === "REPLY") &&
+          -(initialOffsets?.(message.id) ?? 0) <
+            Math.ceil(1.5 + offset / (3 * height)) * 3 * height
+      ),
+    [height, initialOffsets, messages, offset]
+  );
+  const first = messagesToRender?.length && messagesToRender[0];
+  const last =
+    messagesToRender?.length && messagesToRender[messagesToRender.length - 1];
+
+  const messageGroups = useMemo(() => {
+    const groupingThreshold = 1000 * 60 * 5;
+
+    const messageGroups = messagesToRender?.reduce((groups, message) => {
+      if (groups.length === 0) {
+        groups.push([message]);
+        return groups;
+      }
+
+      const lastGroup = groups[groups.length - 1];
+      const lastMessage = lastGroup[lastGroup.length - 1];
+
+      if (
+        lastMessage.authorId === message.authorId &&
+        lastMessage.createdTimestamp - message.createdTimestamp <
+          groupingThreshold
+      ) {
+        lastGroup.push(message);
+        return groups;
+      }
+
       groups.push([message]);
       return groups;
-    }
+    }, [] as MessageData[][]);
 
-    const lastGroup = groups[groups.length - 1];
-    const lastMessage = lastGroup[lastGroup.length - 1];
-
-    if (
-      lastMessage.authorID === message.authorID &&
-      lastMessage.createdTimestamp - message.createdTimestamp <
-        groupingThreshold
-    ) {
-      lastGroup.push(message);
-      return groups;
-    }
-
-    groups.push([message]);
-    return groups;
-  }, [] as MessageData[][]);
-
-  const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
+    return messageGroups;
+    // Only update if contents of array have changed. Just check first and last elem.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [first, last]);
 
   return (
     <VizScroller
@@ -116,7 +134,7 @@ const CompactMessageGroup = ({
   guildId: string;
   channelId: string;
 }) => {
-  const memberId = messages[0].authorID;
+  const memberId = messages[0].authorId;
   const {
     member,
     valid: isValid,
@@ -141,8 +159,13 @@ const CompactMessageGroup = ({
         <Box sx={{ display: "flex", mb: 0.25 }}>
           <Typography
             variant="subtitle2"
-            sx={{ mr: 1 }}
-            style={{ color: member?.displayHexColor }}
+            sx={{ mr: 1, color: "#ffffff" }}
+            style={{
+              color:
+                member?.displayHexColor !== "#000000"
+                  ? member?.displayHexColor
+                  : undefined,
+            }}
           >
             {member?.user.username ?? "..."}
           </Typography>
@@ -185,7 +208,7 @@ const CompactMessageView = ({
   channelId: string;
   guildId: string;
 }) => {
-  const initialOffsets = useAppSelector(selectInitialOffsets(groupKey));
+  const initialOffsets = useInitialOffsets(groupKey);
 
   const ref = useRef<HTMLDivElement>(null);
 

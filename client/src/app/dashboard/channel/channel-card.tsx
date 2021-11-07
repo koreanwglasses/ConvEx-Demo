@@ -90,13 +90,7 @@ export const ChannelCard = ({
                   channelId={channelId}
                   reachedBeginning={reachedBeginning}
                 />
-                <AnalysisBars
-                  messages={messages}
-                  groupKey={channelId}
-                  guildId={guildId}
-                  channelId={channelId}
-                  reachedBeginning={reachedBeginning}
-                />
+                <AnalysisBars messages={messages} groupKey={channelId} />
               </>
             )}
           </ChannelVizGroup>

@@ -1,5 +1,5 @@
 import { to } from "await-to-js";
-import { DiscordAPIError, PermissionString, User } from "discord.js";
+import { DiscordAPIError, PermissionString, User, Constants } from "discord.js";
 import { Handler } from "express";
 import client from "../discord/bot";
 
@@ -11,14 +11,17 @@ export async function hasPermissions(
   guildId: string,
   channelId?: string
 ) {
-  const guild = await client.guilds.fetch(guildId);
+  const [err0, guild] = await to(client.guilds.fetch(guildId));
 
-  const [err, member] = await to(guild.members.fetch(userId));
+  const [err1, member] = await to(guild.members.fetch(userId));
 
-  if (err instanceof DiscordAPIError && err.message === "Unknown Member") {
+  if (
+    err1 instanceof DiscordAPIError &&
+    err1.code === Constants.APIErrors.UNKNOWN_MEMBER
+  ) {
     return false;
   }
-  if (err) throw err;
+  if (err1) throw err1;
 
   if (channelId) {
     return member.permissionsIn(channelId).has(permissions);
@@ -51,7 +54,7 @@ export function requireAuthenticated(): Handler {
 export function requirePermission(permissions: PermissionString[]): Handler {
   return (req, res, next) =>
     requireAuthenticated()(req, res, async () => {
-      const { guildId, channelId = undefined } = req.params;
+      const { guildId, channelId = undefined } = req.body;
       const { id } = req.user as User;
 
       if (await hasPermissions(permissions, id, guildId, channelId)) {

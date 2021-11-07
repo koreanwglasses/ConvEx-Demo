@@ -1,23 +1,41 @@
 import { createSlice } from "@reduxjs/toolkit";
-import type { AppThunk, RootState } from "../store";
+import { AppThunk, RootState, store } from "../store";
 import { MessageData } from "../../common/api-data-types";
 import { fetchJSON } from "../../utils";
 import { fetchAnalyses } from "./analyses-slice";
+import socket from "../sockets";
+
+interface SubState {
+  pending: boolean;
+  messages?: MessageData[];
+  lastErr?: any;
+  reachedBeginning: boolean;
+  lastLimit?: number;
+  isAutoFetching: boolean;
+}
 
 // Define a type for the slice state
 interface MessagesState {
-  [key: string]: {
-    pending: boolean;
-    messages?: MessageData[];
-    lastErr?: any;
-    reachedBeginning: boolean;
-    lastLimit?: number;
-  };
+  [key: string]: SubState;
 }
 
-const defaultValue = () => ({ pending: false, reachedBeginning: false });
-
 const key = (guildId: string, channelId: string) => `${guildId}/${channelId}`;
+const sub = (
+  state: MessagesState,
+  guildId: string,
+  channelId: string,
+  write = true
+) => {
+  const defaults = {
+    pending: false,
+    reachedBeginning: false,
+    isAutoFetching: false,
+  } as const;
+  return (
+    state[key(guildId, channelId)] ??
+    (write ? (state[key(guildId, channelId)] = defaults) : defaults)
+  );
+};
 
 const mergeMessages = (
   currentMessages: MessageData[],
@@ -51,11 +69,9 @@ export const Messages = createSlice({
       }
     ) {
       const { guildId, channelId } = action.payload;
-      const slice = state[key(guildId, channelId)] ?? defaultValue();
+      const slice = sub(state, guildId, channelId);
       slice.pending = true;
       slice.lastLimit = action.payload.limit;
-
-      state[key(guildId, channelId)] = slice;
     },
     finishFetchingMessages(
       state,
@@ -69,7 +85,7 @@ export const Messages = createSlice({
       }
     ) {
       const { guildId, channelId, messages, err } = action.payload;
-      const slice = state[key(guildId, channelId)] ?? defaultValue();
+      const slice = sub(state, guildId, channelId);
       slice.pending = false;
       slice.lastErr = err;
       if (messages) {
@@ -83,13 +99,44 @@ export const Messages = createSlice({
       ) {
         slice.reachedBeginning = true;
       }
-
-      state[key(guildId, channelId)] = slice;
+    },
+    setAutoFetching(
+      state,
+      action: {
+        payload: {
+          guildId: string;
+          channelId: string;
+          isAutoFetching: boolean;
+        };
+      }
+    ) {
+      const { guildId, channelId, isAutoFetching } = action.payload;
+      const slice = sub(state, guildId, channelId);
+      slice.isAutoFetching = isAutoFetching;
+    },
+    unshiftMessage(
+      state,
+      action: {
+        payload: {
+          guildId: string;
+          channelId: string;
+          message: MessageData;
+        };
+      }
+    ) {
+      const { guildId, channelId, message } = action.payload;
+      const slice = sub(state, guildId, channelId);
+      slice.messages = [message, ...(slice.messages ?? [])];
     },
   },
 });
 
-const { startFetchingMessages, finishFetchingMessages } = Messages.actions;
+const {
+  startFetchingMessages,
+  finishFetchingMessages,
+  setAutoFetching,
+  unshiftMessage,
+} = Messages.actions;
 
 export const fetchOlderMessages =
   (
@@ -98,8 +145,7 @@ export const fetchOlderMessages =
     { limit = 100, analyze = true }: { limit?: number; analyze?: boolean } = {}
   ): AppThunk =>
   async (dispatch, getState) => {
-    const slice =
-      getState().messages[key(guildId, channelId)] ?? defaultValue();
+    const slice = sub(getState().messages, guildId, channelId, false);
     if (slice.pending) return;
 
     const oldest = slice.messages?.length
@@ -107,30 +153,56 @@ export const fetchOlderMessages =
       : undefined;
 
     dispatch(startFetchingMessages({ guildId, channelId, limit }));
-    const [err, messages] = await fetchJSON(
-      `/api/messages/${guildId}/${channelId}/fetch`,
-      {
+    const [err, messages] = await fetchJSON(`/api/messages/fetch`, {
+      guildId,
+      channelId,
+      options: {
         before: oldest?.id,
         limit,
-      }
-    );
+      },
+    });
     dispatch(finishFetchingMessages({ guildId, channelId, messages, err }));
 
-    if (analyze) {
-      dispatch(
-        fetchAnalyses(
-          messages.map((message: MessageData) => ({
-            guildId,
-            channelId,
-            messageId: message.id,
-          }))
-        )
-      );
+    if (analyze && messages) {
+      dispatch(fetchAnalyses(messages));
     }
+  };
+
+// Autofetch
+socket.on(
+  "messages",
+  (guildId: string, channelId: string, message: MessageData) => {
+    store.dispatch(unshiftMessage({ guildId, channelId, message }));
+  }
+);
+export const enableAutoFetch =
+  (guildId: string, channelId: string): AppThunk =>
+  (dispatch, getState) => {
+    const slice = sub(getState().messages, guildId, channelId, false);
+    if (slice.isAutoFetching) return;
+    dispatch(setAutoFetching({ guildId, channelId, isAutoFetching: true }));
+
+    socket.emit("messages/subscribe", guildId, channelId);
+    socket.on("messages/subscribe", ([err]) => {
+      if (err) throw err;
+    });
+  };
+
+export const disableAutoFetch =
+  (guildId: string, channelId: string): AppThunk =>
+  (dispatch, getState) => {
+    const slice = sub(getState().messages, guildId, channelId, false);
+    if (!slice.isAutoFetching) return;
+    dispatch(setAutoFetching({ guildId, channelId, isAutoFetching: false }));
+
+    socket.emit("messages/unsubscribe", guildId, channelId);
+    socket.on("messages/unsubscribe", ([err]) => {
+      if (err) throw err;
+    });
   };
 
 export const selectMessages =
   (guildId: string, channelId: string) => (state: RootState) =>
-    state.messages[key(guildId, channelId)] ?? defaultValue();
+    sub(state.messages, guildId, channelId, false);
 
 export default Messages.reducer;

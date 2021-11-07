@@ -18,14 +18,13 @@ const app = express();
 app.use(express.json());
 
 const MemoryStore = createMemoryStore(session);
-app.use(
-  session({
-    store: new MemoryStore({ checkPeriod: 86400000 }),
-    secret: config.server.sessionSecret,
-    resave: false,
-    saveUninitialized: false,
-  })
-);
+export const sessionMiddleware = session({
+  store: new MemoryStore({ checkPeriod: 86400000 }),
+  secret: config.server.sessionSecret,
+  resave: false,
+  saveUninitialized: false,
+});
+app.use(sessionMiddleware);
 
 app.use(passport.initialize());
 app.use(passport.session());
@@ -40,6 +39,7 @@ app.get("/invite", (req, res) => {
   const url = `https://discord.com/api/oauth2/authorize?client_id=${config.discord.clientID}&permissions=66560&scope=bot`;
   res.redirect(url);
 });
+
 app.use("/api", DiscordRouter);
 app.use("/api", AnalysisRouter);
 

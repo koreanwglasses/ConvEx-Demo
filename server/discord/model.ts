@@ -38,6 +38,7 @@ const toUserData = (user: User): UserData =>
 const toMemberData = (member: GuildMember): MemberData =>
   member && {
     id: member.id,
+    guildId: member.guild?.id,
     user: toUserData(member.user),
     displayAvatarURL: member.displayAvatarURL(),
     displayHexColor: member.displayHexColor,
@@ -46,24 +47,29 @@ const toMemberData = (member: GuildMember): MemberData =>
 const toChannelData = (channel: TextChannel): ChannelData =>
   channel && {
     id: channel.id,
+    guildId: channel.guildId,
     name: channel.name,
   };
 
-const toMessageData = (message: Message): MessageData =>
+export const toMessageData = (message: Message): MessageData =>
   message && {
     id: message.id,
+    channelId: message.channelId,
+    guildId: message.guildId,
     content: message.content,
     cleanContent: message.cleanContent,
     createdTimestamp: message.createdTimestamp,
     editTimestamp: message.editedTimestamp,
-    authorID: message.author.id,
+    authorId: message.author?.id,
     type: message.type,
     embeds: message.embeds?.map(toEmbedData),
-    attachments: Object.fromEntries(
-      [...message.attachments.entries()].map(
-        ([k, v]) => [k, toAttachmentData(v)] as const
-      )
-    ),
+    attachments:
+      message.attachments &&
+      Object.fromEntries(
+        [...message.attachments.entries()].map(
+          ([k, v]) => [k, toAttachmentData(v)] as const
+        )
+      ),
   };
 
 const toEmbedData = (embed: MessageEmbed): EmbedData => embed && {};

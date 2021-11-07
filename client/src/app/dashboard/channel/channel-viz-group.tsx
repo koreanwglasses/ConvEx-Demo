@@ -1,15 +1,18 @@
 import React, { useEffect } from "react";
 import { MessageData } from "../../../common/api-data-types";
-import { fetchOlderMessages, selectMessages } from "../../data/messages-slice";
+import {
+  disableAutoFetch,
+  enableAutoFetch,
+  fetchOlderMessages,
+  selectMessages,
+} from "../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
+import { VizGroupContainer } from "../../viz-scroller/viz-scroller";
 import {
-  VizGroupContainer,
-  VizScrollHandler,
-} from "../../viz-scroller/viz-scroller";
-import {
-  selectInitialOffsets,
+  clearInitialOffsets,
   selectVizScrollerGroup,
   setMaxScrollOffset,
+  useInitialOffsets,
 } from "../../viz-scroller/viz-scroller-slice";
 
 export const ChannelVizGroup = ({
@@ -31,8 +34,8 @@ export const ChannelVizGroup = ({
     messages?: MessageData[];
   }) => React.ReactNode;
 }) => {
-  const { messages, pending, reachedBeginning } =
-    useAppSelector(selectMessages(guildId, channelId)) ?? {};
+  const { messages, pending, reachedBeginning, isAutoFetching } =
+    useAppSelector(selectMessages(guildId, channelId));
 
   const dispatch = useAppDispatch();
   useEffect(() => {
@@ -41,12 +44,10 @@ export const ChannelVizGroup = ({
     }
   }, [messages, pending, dispatch, guildId, channelId]);
 
-  const initialOffsets = useAppSelector(selectInitialOffsets(groupKey));
-  const { height, maxScrollOffset } = useAppSelector(
-    selectVizScrollerGroup(groupKey)
-  );
+  const initialOffsets = useInitialOffsets(groupKey);
+  const { height } = useAppSelector(selectVizScrollerGroup(groupKey));
 
-  const onScroll: VizScrollHandler = (e) => {
+  const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
     const hasScrolledToTop =
       initialOffsets &&
       messages?.length &&
@@ -56,33 +57,30 @@ export const ChannelVizGroup = ({
     if (hasScrolledToTop && !pending && !reachedBeginning) {
       dispatch(fetchOlderMessages(guildId, channelId));
     }
+
+    const hasScrolledToBottom = e.currentTarget.scrollTop > -10;
+    if (hasScrolledToBottom && !isAutoFetching) {
+      dispatch(enableAutoFetch(guildId, channelId));
+    }
+    const hasScrolledAwayFromBottom = e.currentTarget.scrollTop < -20;
+    if(hasScrolledAwayFromBottom && isAutoFetching) {
+      dispatch(disableAutoFetch(guildId, channelId));
+    }
   };
 
-  // Stop scrolling when we reach the end
-
+  const newestMessage = messages?.length && messages[0];
   useEffect(() => {
-    if (
-      reachedBeginning &&
-      messages?.length &&
-      !maxScrollOffset &&
-      initialOffsets
-    ) {
-      const firstMessageOffset = initialOffsets(
-        messages[messages.length - 1].id
-      );
-      if (!firstMessageOffset) return;
-      const newMaxOffset = -firstMessageOffset + 0.5 * height;
-      dispatch(setMaxScrollOffset({ key: groupKey, offset: newMaxOffset }));
-    }
-  }, [
-    reachedBeginning,
-    messages,
-    maxScrollOffset,
-    initialOffsets,
-    dispatch,
-    height,
-    groupKey,
-  ]);
+    dispatch(clearInitialOffsets({ key: groupKey }));
+  }, [dispatch, groupKey, newestMessage]);
+
+  const oldestMessageOffset =
+    messages?.length && initialOffsets?.(messages[messages.length - 1].id);
+  // Stop scrolling when we reach the end
+  useEffect(() => {
+    if (!oldestMessageOffset) return;
+    const maxOffset = -oldestMessageOffset + 0.5 * height;
+    dispatch(setMaxScrollOffset({ key: groupKey, offset: maxOffset }));
+  }, [dispatch, oldestMessageOffset, groupKey, height]);
 
   return (
     <VizGroupContainer groupKey={groupKey} onScroll={onScroll}>
