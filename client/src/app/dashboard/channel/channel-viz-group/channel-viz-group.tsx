@@ -7,7 +7,10 @@ import React, {
 } from "react";
 import { useAppDispatch } from "../../../hooks";
 import { VizGroupContainer } from "../../../viz-scroller/viz-scroller";
-import { useVizScrollerGroup } from "../../../viz-scroller/viz-scroller-slice";
+import {
+  setMaxScrollHeight,
+  useVizScrollerGroup,
+} from "../../../viz-scroller/viz-scroller-slice";
 import {
   clearInitialOffsets,
   fetchNewerMessages,
@@ -92,17 +95,17 @@ export const ChannelVizGroup = ({
   // Clear/recompute offsets when new message is inserted
   const newestMessage = messages?.length && messages[0];
   useEffect(() => {
-    dispatch(clearInitialOffsets({ groupKey: groupKey }));
+    dispatch(clearInitialOffsets({ groupKey }));
   }, [dispatch, groupKey, newestMessage]);
 
   // Stop scrolling when we reach the end
   // const oldestMessageOffset =
-  //   messages?.length && initialOffsets?.(messages[messages.length - 1]);
+  //   messages?.length && initialOffsets(messages[messages.length - 1]);
   // useEffect(() => {
   //   if (!oldestMessageOffset) return;
-  //   const maxOffset = -oldestMessageOffset + 0.5 * height;
-  //   dispatch(setMaxScrollOffset({ key: groupKey, offset: maxOffset }));
-  // }, [dispatch, oldestMessageOffset, groupKey, height]);
+  //   const maxOffset = -oldestMessageOffset + 0.5 * clientHeight;
+  //   dispatch(setMaxScrollHeight({ key: groupKey, offset: maxOffset }));
+  // }, [clientHeight, dispatch, groupKey, oldestMessageOffset]);
 
   // Stop streaming when hidden
   useEffect(() => {
