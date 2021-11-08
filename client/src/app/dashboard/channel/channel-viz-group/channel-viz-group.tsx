@@ -7,10 +7,7 @@ import React, {
 } from "react";
 import { useAppDispatch } from "../../../hooks";
 import { VizGroupContainer } from "../../../viz-scroller/viz-scroller";
-import {
-  setMaxScrollHeight,
-  useVizScrollerGroup,
-} from "../../../viz-scroller/viz-scroller-slice";
+import { useVizScrollerGroup } from "../../../viz-scroller/viz-scroller-slice";
 import {
   clearInitialOffsets,
   fetchNewerMessages,
