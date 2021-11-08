@@ -3,7 +3,7 @@ import { Box } from "@mui/system";
 import { MessageData } from "../../../common/api-data-types";
 import { useAppSelector } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
-import { selectVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
+import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import {
   useCallback,
   useEffect,
@@ -13,15 +13,33 @@ import {
 } from "react";
 import { selectBatchAnalysis } from "../../data/analyses-slice";
 import { arrayEqual } from "../../../utils";
-import { useInitialOffsets } from "./channel-viz-group/channel-viz-group-slice";
+import {
+  selectLayoutMode,
+  useInitialOffsets,
+  useMessages,
+} from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
+import { shallowEqual } from "react-redux";
 
 type DrawArgs = {
-  y: (message: MessageData) => number;
   data: (readonly [MessageData, number | undefined])[];
+  applyY: (
+    offsetY: (datum: readonly [MessageData, number | undefined]) => number
+  ) => (
+    sel: d3.Selection<
+      any,
+      readonly [MessageData, number | undefined],
+      any,
+      unknown
+    >
+  ) => void;
+  y: (message: MessageData) => number;
+  yPrev?: (message: MessageData) => number;
+  isTransitioning: boolean;
+  transitionOffset: number;
   width: number;
-  height: number;
-  renderHeight: number;
+  clientHeight: number;
+  canvasHeight: number;
 };
 export const useD3VizComponent = <Selections extends Record<string, unknown>>(
   initialize: (svgRef: SVGSVGElement) => Selections,
@@ -29,10 +47,7 @@ export const useD3VizComponent = <Selections extends Record<string, unknown>>(
 ) =>
   useMemo(
     () =>
-      (props: {
-        messages?: MessageData[];
-        filterMargin?: number;
-      }) =>
+      (props: { filterMargin?: number; hidden?: boolean; width?: number }) =>
         <D3Viz {...props} initialize={initialize} draw={draw} />,
     // No deps since these functions are intended to be unchanging even if they
     // are technically different instances
@@ -41,29 +56,38 @@ export const useD3VizComponent = <Selections extends Record<string, unknown>>(
   );
 
 const D3Viz = <Selections extends Record<string, unknown>>({
-  messages,
   initialize,
   draw,
+  hidden = false,
+  width: width_ = 300,
   filterMargin = 0,
 }: {
-  messages?: MessageData[];
   initialize: (svgRef: SVGSVGElement) => Selections;
   draw: (args: DrawArgs & Selections) => void;
   filterMargin?: number;
+  hidden?: boolean;
+  width?: number;
 }) => {
   const groupKey = useGroupKey();
+  const messages = useMessages(groupKey);
 
   ////////////
   // LAYOUT //
   ////////////
-  
+
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
   const width = containerRef.current?.clientWidth;
-  const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
+  const { canvasHeight, clientHeight, offset } = useVizScrollerGroup(groupKey);
+
+  const { isTransitioning, prevMode, transitionOffset } = useAppSelector(
+    selectLayoutMode(groupKey),
+    shallowEqual
+  );
 
   const initialOffsets = useInitialOffsets(groupKey);
+  const prevInitialOffsets = useInitialOffsets(groupKey, prevMode);
 
   //////////
   // DATA //
@@ -76,10 +100,12 @@ const D3Viz = <Selections extends Record<string, unknown>>({
       ),
     [messages]
   );
+
   const analyses = useAppSelector(
     selectBatchAnalysis(messagesToRender ?? []),
     arrayEqual
   );
+
   const data_ = useMemo(
     () =>
       messagesToRender?.map(
@@ -115,46 +141,98 @@ const D3Viz = <Selections extends Record<string, unknown>>({
     if (!data_ || !width || !initialOffsets) return;
     if (!selections.current && !(selections.current = initialize_())) return;
 
-    const y = (message: MessageData) =>
-      height * 3 + initialOffsets(message)! + offset;
+    const yFromInitialOffsets =
+      (initialOffsets?: (message: MessageData) => number | undefined) =>
+      (message: MessageData) => {
+        const io = initialOffsets?.(message);
+        if (typeof io !== "number") return;
+        return canvasHeight + io + offset;
+      };
+
+    const y = yFromInitialOffsets(initialOffsets);
+    const yPrev = yFromInitialOffsets(prevInitialOffsets);
+
+    const isWithinMargin = (y?: number) =>
+      typeof y === "number" &&
+      -filterMargin <= y &&
+      y <= canvasHeight + filterMargin;
 
     const data = data_.filter(
       ([message]) =>
-        initialOffsets(message) &&
-        -filterMargin <= y(message) &&
-        y(message) <= height * 3 + filterMargin
+        isWithinMargin(y(message)) ||
+        (isTransitioning && isWithinMargin(yPrev(message)))
     );
 
+    const applyY =
+      (
+        offsetY: (datum: readonly [MessageData, number | undefined]) => number
+      ) =>
+      (
+        sel: d3.Selection<
+          any,
+          readonly [MessageData, number | undefined],
+          any,
+          unknown
+        >
+      ) => {
+        if (isTransitioning) {
+          sel
+            .attr(
+              "y",
+              (datum) => yPrev!(datum[0])! + offsetY(datum) + transitionOffset
+            )
+            .transition()
+            .delay(250)
+            .duration(400)
+            .attr("y", (datum) => y!(datum[0])! + offsetY(datum));
+        } else {
+          sel.attr("y", (datum) => y!(datum[0])! + offsetY(datum));
+        }
+      };
+
     draw_({
-      y,
-      data,
+      data: data.filter(
+        ([message]) =>
+          typeof y(message) === "number" &&
+          (!isTransitioning || typeof yPrev(message) === "number")
+      ),
+      applyY,
+      y: y as (message: MessageData) => number,
+      yPrev: yPrev as (message: MessageData) => number,
+      isTransitioning,
+      transitionOffset,
       width,
-      height,
-      renderHeight: height * 3,
+      clientHeight,
+      canvasHeight,
       ...selections.current,
     });
 
     svgRef.current?.style.setProperty("top", "0");
   }, [
+    canvasHeight,
+    clientHeight,
     data_,
     draw_,
     filterMargin,
-    height,
-    initialize_,
     initialOffsets,
+    initialize_,
+    isTransitioning,
     offset,
+    prevInitialOffsets,
+    transitionOffset,
     width,
   ]);
 
   return (
     <VizScroller
       groupKey={groupKey}
-      sx={{ flexBasis: 300, flexGrow: 1, position: "relative" }}
+      sx={{ position: "relative", transition: "max-width 0.3s" }}
+      style={{ maxWidth: hidden ? 0 : width_, width: width_ }}
       ref={containerRef}
     >
       <svg
         width={width}
-        height={height * 3}
+        height={canvasHeight}
         ref={svgRef}
         style={{ position: "relative" }}
       />
@@ -164,10 +242,12 @@ const D3Viz = <Selections extends Record<string, unknown>>({
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            height,
             width,
             minWidth: 300,
             position: "absolute",
+          }}
+          style={{
+            height: clientHeight,
           }}
         >
           <CircularProgress />

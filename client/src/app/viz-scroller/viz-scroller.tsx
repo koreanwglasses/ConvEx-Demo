@@ -1,86 +1,83 @@
 import { Box, SxProps } from "@mui/system";
-import React, { forwardRef, useMemo } from "react";
-import { useAppDispatch, useAppSelector } from "../hooks";
+import React, { forwardRef, useEffect, useRef } from "react";
+import { useAppDispatch } from "../hooks";
 import {
-  selectVizScrollerGroup,
-  adjustScrollOffset,
+  adjustScrollTop_,
+  computeScrollOffset,
+  useVizScrollerGroup,
 } from "./viz-scroller-slice";
+import mergeRefs from "react-merge-refs";
 
-export const VizGroupContainer = ({
-  groupKey,
-  onScroll: onScroll_,
-  children,
-}: React.PropsWithChildren<{
+type Props = React.PropsWithChildren<{
   groupKey: string;
   onScroll?: React.UIEventHandler<HTMLDivElement>;
   fixedBaseline?: boolean;
-}>) => {
-  const { height, offset, maxScrollOffset } = useAppSelector(
-    selectVizScrollerGroup(groupKey)
-  );
+}>;
+export const VizGroupContainer = React.forwardRef<HTMLDivElement, Props>(
+  ({ groupKey, onScroll: onScroll_, children }: Props, ref) => {
+    const { scrollHeight, clientHeight, dScrollTop } =
+      useVizScrollerGroup(groupKey);
 
-  const dispatch = useAppDispatch();
-  const computeOffset = useMemo(
-    () => (ref: HTMLDivElement) => {
-      const scrollFromTop =
-        ref.scrollHeight + ref.scrollTop - ref.clientHeight - height;
-      if (
-        scrollFromTop < height / 2 &&
-        (!maxScrollOffset || offset + 3 * height < maxScrollOffset)
-      ) {
+    const dispatch = useAppDispatch();
+
+    const lastTimestamp = useRef<number>();
+    const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
+      if (!lastTimestamp.current || e.timeStamp - lastTimestamp.current > 50) {
         dispatch(
-          adjustScrollOffset({
+          computeScrollOffset({
             key: groupKey,
-            amount: height / 2,
-          })
-        );
-      } else if (scrollFromTop > (3 * height) / 2 && offset > 0) {
-        dispatch(
-          adjustScrollOffset({
-            key: groupKey,
-            amount: -height / 2,
+            scrollTop: e.currentTarget.scrollTop,
           })
         );
       }
-    },
-    [dispatch, groupKey, height, maxScrollOffset, offset]
-  );
+      lastTimestamp.current = e.timeStamp;
 
-  const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
-    computeOffset(e.currentTarget);
-    onScroll_ && onScroll_(e);
-  };
+      onScroll_ && onScroll_(e);
+    };
 
-  return (
-    <Box
-      sx={{
-        height,
-        overflowY: "scroll",
-        scrollbarWidth: "none",
-        display: "flex",
-        flexFlow: "column-reverse",
-        "::-webkit-scrollbar": {
-          display: "none",
-        },
-      }}
-      onScroll={onScroll}
-    >
-      <div
-        style={{
-          flexShrink: 0,
+    const ref_ = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+      if (ref_.current && dScrollTop) {
+        ref_.current.scrollTop += dScrollTop;
+        dispatch(adjustScrollTop_({ key: groupKey, reset: true }));
+      }
+    }, [dScrollTop, dispatch, groupKey]);
+
+    return (
+      <Box
+        sx={{
+          height: clientHeight,
+          overflowY: "scroll",
+          scrollbarWidth: "none",
           display: "flex",
-          alignItems: "flex-start",
-          height: Math.min(
-            4 * height + offset,
-            maxScrollOffset ?? Number.POSITIVE_INFINITY
-          ),
+          flexFlow: "column-reverse",
+          "::-webkit-scrollbar": {
+            display: "none",
+          },
         }}
+        onScroll={onScroll}
+        ref={mergeRefs([ref, ref_])}
       >
-        {children}
-      </div>
-    </Box>
-  );
-};
+        <div
+          style={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "flex-start",
+            height: ref_.current
+              ? Math.max(
+                  scrollHeight,
+                  clientHeight - ref_.current.scrollTop,
+                  clientHeight - ref_.current.scrollTop - dScrollTop
+                )
+              : scrollHeight,
+          }}
+        >
+          {children}
+        </div>
+      </Box>
+    );
+  }
+);
 
 export const VizScroller = forwardRef(
   (
@@ -89,6 +86,7 @@ export const VizScroller = forwardRef(
       children,
       fixedBaseline = false,
       sx = {},
+      style = {},
     }: {
       groupKey: string;
       children:
@@ -96,29 +94,26 @@ export const VizScroller = forwardRef(
         | (({ offset }: { offset: number }) => React.ReactNode);
       fixedBaseline?: boolean;
       sx?: SxProps;
+      style?: React.CSSProperties;
     },
     ref
   ) => {
-    const { height, offset, maxScrollOffset } = useAppSelector(
-      selectVizScrollerGroup(groupKey)
-    );
+    const { clientHeight, canvasHeight, scrollHeight, canvasTop, offset } =
+      useVizScrollerGroup(groupKey);
 
     return (
       <Box
         sx={{
-          height: 3 * height,
           overflowY: "hidden",
           display: "flex",
           flexFlow: "column-reverse",
           position: "relative",
-          top: height,
           ...sx,
         }}
         style={{
-          height: fixedBaseline ? 3 * height + offset : undefined,
-          top: maxScrollOffset
-            ? Math.min(maxScrollOffset - 3 * height - offset, height)
-            : undefined,
+          height: fixedBaseline ? scrollHeight - clientHeight : canvasHeight,
+          top: canvasTop,
+          ...style,
         }}
         ref={ref}
       >

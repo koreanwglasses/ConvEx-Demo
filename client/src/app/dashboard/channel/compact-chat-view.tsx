@@ -5,22 +5,31 @@ import { selectAnalysis } from "../../data/analyses-slice";
 import { fetchMember, selectMember } from "../../data/members-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
-import { selectVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
+import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
 import {
   useInitialOffsets,
   setInitialOffset,
   useMessages,
   useChannelVizGroup,
+  selectLayout,
+  clearInitialOffsets,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 
-export const CompactChatView = () => {
+export const CompactChatView = ({
+  hidden = false,
+  width = 300,
+}: {
+  hidden?: boolean;
+  width?: number;
+}) => {
   const groupKey = useGroupKey();
-  const { height, offset } = useAppSelector(selectVizScrollerGroup(groupKey));
+  const { clientHeight, canvasHeight, offset } = useVizScrollerGroup(groupKey);
   const { reachedBeginning } = useChannelVizGroup(groupKey);
   const initialOffsets = useInitialOffsets(groupKey);
   const messages = useMessages(groupKey);
+  const dispatch = useAppDispatch();
 
   // Only rendering default messages and replies for now
   const messagesToRender = useMemo(
@@ -29,9 +38,9 @@ export const CompactChatView = () => {
         (message) =>
           (message.type === "DEFAULT" || message.type === "REPLY") &&
           -(initialOffsets?.(message) ?? 0) <
-            Math.ceil(1.5 + offset / (3 * height)) * 3 * height
+            Math.ceil(1.5 + offset / canvasHeight) * canvasHeight
       ),
-    [height, initialOffsets, messages, offset]
+    [canvasHeight, initialOffsets, messages, offset]
   );
   const first = messagesToRender?.length && messagesToRender[0];
   const last =
@@ -67,18 +76,35 @@ export const CompactChatView = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [first, last]);
 
+  const lastWidth = useRef(width);
+  const lastDifferentWidth = useRef(width);
+  useEffect(() => {
+    if (lastWidth.current !== width) {
+      lastDifferentWidth.current = lastWidth.current;
+      setTimeout(() => dispatch(clearInitialOffsets({ groupKey })), 300);
+    }
+    lastWidth.current = width;
+  }, [dispatch, groupKey, width]);
+
   return (
     <VizScroller
       groupKey={groupKey}
-      sx={{ flexGrow: 1, flexBasis: 300 }}
+      sx={{ transition: "max-width 0.3s", overflowX: "hidden" }}
+      style={{
+        maxWidth: hidden ? 0 : width,
+        width: Math.max(lastDifferentWidth.current, width),
+      }}
       fixedBaseline
     >
       <Box
         sx={{
+          width,
+
           display: "flex",
           flexFlow: "column-reverse",
           gap: 1,
           pb: 1,
+          pl: 1,
         }}
       >
         {messageGroups?.map((group) => (
@@ -98,7 +124,7 @@ export const CompactChatView = () => {
               mb: 1,
             }}
             style={{
-              height: messages ? undefined : height,
+              height: messages ? undefined : clientHeight,
             }}
           >
             <CircularProgress />
@@ -115,6 +141,7 @@ export const CompactChatView = () => {
     </VizScroller>
   );
 };
+
 const CompactMessageGroup = ({
   messages,
   groupKey,
@@ -193,16 +220,16 @@ const CompactMessageView = ({
   groupKey: string;
 }) => {
   const { guildId, channelId } = useChannelVizGroup(groupKey);
-  const initialOffsets = useInitialOffsets(groupKey);
+  const { offsetMap } = useAppSelector(selectLayout(groupKey));
 
   const ref = useRef<HTMLDivElement>(null);
 
   const dispatch = useAppDispatch();
   useEffect(() => {
-    if (ref.current && !initialOffsets?.(message)) {
+    if (ref.current && !(message.id in offsetMap)) {
       dispatch(
         setInitialOffset({
-          groupKey: groupKey,
+          groupKey,
           itemKey: message.id,
           offset:
             ref.current.offsetTop +
@@ -211,7 +238,7 @@ const CompactMessageView = ({
         })
       );
     }
-  }, [dispatch, message, groupKey, initialOffsets]);
+  }, [dispatch, message, groupKey, offsetMap]);
 
   const { analysis } = useAppSelector(
     selectAnalysis(guildId, channelId, message.id)

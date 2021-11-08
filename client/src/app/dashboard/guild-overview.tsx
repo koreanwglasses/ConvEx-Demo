@@ -47,6 +47,7 @@ const GuildOverview = () => {
               gap: 2,
               justifyContent: "center",
               flexDirection: "column",
+              alignItems: "center",
             }}
           >
             {channels.map((channel) => (
