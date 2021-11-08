@@ -1,7 +1,7 @@
 import { CircularProgress } from "@mui/material";
 import { Box } from "@mui/system";
 import { MessageData } from "../../../common/api-data-types";
-import { useAppSelector } from "../../hooks";
+import { useAppSelector, usePreviousValue } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
 import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import {
@@ -59,7 +59,7 @@ const D3Viz = <Selections extends Record<string, unknown>>({
   initialize,
   draw,
   hidden = false,
-  width: width_ = 300,
+  width = 300,
   filterMargin = 0,
 }: {
   initialize: (svgRef: SVGSVGElement) => Selections;
@@ -78,7 +78,6 @@ const D3Viz = <Selections extends Record<string, unknown>>({
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const width = containerRef.current?.clientWidth;
   const { canvasHeight, clientHeight, offset } = useVizScrollerGroup(groupKey);
 
   const { isTransitioning, prevMode, transitionOffset } = useAppSelector(
@@ -138,8 +137,10 @@ const D3Viz = <Selections extends Record<string, unknown>>({
   }, [offset]);
 
   useEffect(() => {
-    if (!data_ || !width || !initialOffsets) return;
-    if (!selections.current && !(selections.current = initialize_())) return;
+    if (!data_ || !initialOffsets) return;
+    if (!selections.current) {
+      selections.current = initialize_();
+    }
 
     const yFromInitialOffsets =
       (initialOffsets?: (message: MessageData) => number | undefined) =>
@@ -223,11 +224,16 @@ const D3Viz = <Selections extends Record<string, unknown>>({
     width,
   ]);
 
+  const prevWidth = usePreviousValue(width);
+
   return (
     <VizScroller
       groupKey={groupKey}
       sx={{ position: "relative", transition: "max-width 0.3s" }}
-      style={{ maxWidth: hidden ? 0 : width_, width: width_ }}
+      style={{
+        maxWidth: hidden ? 0 : width,
+        width: Math.max(width, prevWidth),
+      }}
       ref={containerRef}
     >
       <svg

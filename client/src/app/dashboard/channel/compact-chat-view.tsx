@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { MessageData } from "../../../common/api-data-types";
 import { selectAnalysis } from "../../data/analyses-slice";
 import { fetchMember, selectMember } from "../../data/members-slice";
-import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useAppDispatch, useAppSelector, usePreviousValue } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
 import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
@@ -76,15 +76,9 @@ export const CompactChatView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [first, last]);
 
-  const lastWidth = useRef(width);
-  const lastDifferentWidth = useRef(width);
-  useEffect(() => {
-    if (lastWidth.current !== width) {
-      lastDifferentWidth.current = lastWidth.current;
-      setTimeout(() => dispatch(clearInitialOffsets({ groupKey })), 300);
-    }
-    lastWidth.current = width;
-  }, [dispatch, groupKey, width]);
+  const prevWidth = usePreviousValue(width, () =>
+    setTimeout(() => dispatch(clearInitialOffsets({ groupKey })), 300)
+  );
 
   return (
     <VizScroller
@@ -92,7 +86,7 @@ export const CompactChatView = ({
       sx={{ transition: "max-width 0.3s", overflowX: "hidden" }}
       style={{
         maxWidth: hidden ? 0 : width,
-        width: Math.max(lastDifferentWidth.current, width),
+        width: Math.max(width, prevWidth),
       }}
       fixedBaseline
     >
