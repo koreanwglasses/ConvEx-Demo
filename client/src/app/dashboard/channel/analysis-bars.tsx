@@ -87,13 +87,7 @@ export const AnalysisBars = ({
         .attr("height", barHeight)
         .attr("fill", ([, tox]) => (tox ? d3.interpolateYlOrRd(tox) : "white"))
         .call(applyY(() => -barHeight / 2))
-        .on("dblclick", (e, data) => {
-          const [message] = data;
-          const { mode } = selectLayoutMode(groupKey)(store.getState());
-          if (mode !== "map")
-            dispatch(transitionLayoutMode(groupKey, "map", message));
-          onDoubleClickBar?.(e, data);
-        });
+        .on("dblclick", (e, data) => onDoubleClickBar?.(e, data));
 
       const labelOutsideCutoff = 0.9;
       const sel1 = labelsG

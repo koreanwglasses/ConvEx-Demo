@@ -18,13 +18,18 @@ import {
 } from "@mui/material";
 import { Box } from "@mui/system";
 import React, { useEffect, useRef, useState } from "react";
+import { shallowEqual } from "react-redux";
+import { MessageData } from "../../../common/api-data-types";
 import TransitionContainer from "../../components/ui/transition-container";
 import { selectChannelById } from "../../data/channels-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { setClientHeight } from "../../viz-scroller/viz-scroller-slice";
 import { AnalysisBars } from "./analysis-bars";
 import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
-import { transitionLayoutMode } from "./channel-viz-group/channel-viz-group-slice";
+import {
+  selectLayoutMode,
+  transitionLayoutMode,
+} from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
 
 export const ChannelCard = ({
@@ -59,25 +64,37 @@ export const ChannelCard = ({
     );
   };
 
+  const { mode } = useAppSelector(selectLayoutMode(groupKey), shallowEqual);
+
   type ChartType = "CompactChatView" | "AnalysisBars";
   const [charts, setCharts] = useState<ChartType[]>(["CompactChatView"]);
 
-  const handleChartChanged = (e: unknown, value: ChartType[]) => {
+  const handleChartChanged = (
+    e: unknown,
+    value: ChartType[],
+    pivot?: MessageData
+  ) => {
     const wasChatOpen = charts.includes("CompactChatView");
     const isChatOpen = value.includes("CompactChatView");
     setCharts(value);
 
-    if (wasChatOpen && !isChatOpen)
-      dispatch(transitionLayoutMode(groupKey, "compact"));
-    if (!wasChatOpen && isChatOpen)
-      dispatch(transitionLayoutMode(groupKey, "map"));
+    if (wasChatOpen && !isChatOpen && mode !== "compact")
+      dispatch(transitionLayoutMode(groupKey, "compact", pivot));
+    if (!wasChatOpen && isChatOpen && mode !== "map")
+      dispatch(transitionLayoutMode(groupKey, "map", pivot));
   };
 
   // Workaround for callback not updating in component
-  const chartsRef = useRef(charts);
-  useEffect(() => {
-    chartsRef.current = charts;
-  }, [charts]);
+  const handleDoubleClickBar = useRef<(message: MessageData) => void>();
+  handleDoubleClickBar.current = (message: MessageData) => {
+    if (charts.includes("CompactChatView"))
+      handleChartChanged(
+        undefined,
+        charts.filter((chart) => chart !== "CompactChatView"),
+        message
+      );
+    else handleChartChanged(undefined, [...charts, "CompactChatView"], message);
+  };
 
   return (
     <Card
@@ -171,11 +188,9 @@ export const ChannelCard = ({
                   <AnalysisBars
                     width={chartWidth}
                     hidden={hidden}
-                    onDoubleClickBar={() => {
-                      const charts = chartsRef.current;
-                      if (!charts.includes("CompactChatView"))
-                        setCharts([...charts, "CompactChatView"]);
-                    }}
+                    onDoubleClickBar={(e, [message]) =>
+                      handleDoubleClickBar.current!(message)
+                    }
                   />
                 )}
               </TransitionContainer>
