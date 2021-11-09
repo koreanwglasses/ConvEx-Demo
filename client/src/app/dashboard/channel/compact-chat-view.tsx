@@ -329,8 +329,7 @@ const CompactMessageView = ({
         ) : null}
         {message.content}
       </Box>
-
-      <Box
+      {/* <Box
         sx={{
           width: 100,
           height: "1px",
@@ -338,7 +337,7 @@ const CompactMessageView = ({
           position: "absolute",
         }}
         style={{ bottom: -offsetBottomMap[message.id] }}
-      />
+      /> */}
     </>
   );
 };
