@@ -114,7 +114,6 @@ export const AnalysisBars = ({
             : "white"
         )
         .style("font-size", "12px")
-        .style("pointer-events", "none")
         .attr("x", ([, tox]) =>
           typeof tox !== "number"
             ? 3
