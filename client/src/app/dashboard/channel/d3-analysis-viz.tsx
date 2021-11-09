@@ -13,7 +13,7 @@ import { selectBatchAnalysis } from "../../data/analyses-slice";
 import { arrayEqual } from "../../../utils";
 import {
   selectLayoutMode,
-  useInitialOffsets,
+  useOffsets,
   useMessages,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
@@ -83,8 +83,8 @@ const D3Viz = <Selections extends Record<string, unknown>>({
   const { isTransitioning, prevMode, transitionOffset, layoutKey } =
     useAppSelector(selectLayoutMode(groupKey), shallowEqual);
 
-  const initialOffsets = useInitialOffsets(groupKey);
-  const prevInitialOffsets = useInitialOffsets(groupKey, prevMode);
+  const initialOffsets = useOffsets(groupKey);
+  const prevInitialOffsets = useOffsets(groupKey, prevMode);
 
   //////////
   // DATA //

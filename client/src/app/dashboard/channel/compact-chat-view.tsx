@@ -8,10 +8,10 @@ import { VizScroller } from "../../viz-scroller/viz-scroller";
 import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
 import {
-  setInitialOffset,
+  setOffsets,
   useMessages,
   useChannelVizGroup,
-  selectLayout,
+  selectLayoutData,
   selectThreshold,
   setLayoutKey,
 } from "./channel-viz-group/channel-viz-group-slice";
@@ -32,7 +32,7 @@ export const CompactChatView = ({
   const messages = useMessages(groupKey);
   const dispatch = useAppDispatch();
   const { offsetMap, offsetBottomMap, offsetTopMap } = useAppSelector(
-    selectLayout(groupKey)
+    selectLayoutData(groupKey)
   );
 
   // Only rendering default messages and replies for now
@@ -250,7 +250,10 @@ const CompactMessageView = ({
 }) => {
   const { guildId, channelId } = useChannelVizGroup(groupKey);
   const threshold = useAppSelector(selectThreshold(groupKey));
-  const { offsetMap } = useAppSelector(selectLayout(groupKey), shallowEqual);
+  const { offsetMap } = useAppSelector(
+    selectLayoutData(groupKey),
+    shallowEqual
+  );
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -268,7 +271,7 @@ const CompactMessageView = ({
     // }
     if (ref.current && !(message.id in offsetMap)) {
       dispatch(
-        setInitialOffset({
+        setOffsets({
           groupKey,
           itemKey: message.id,
           offset:

@@ -9,13 +9,13 @@ import { useAppDispatch } from "../../../hooks";
 import { VizGroupContainer } from "../../../viz-scroller/viz-scroller";
 import { useVizScrollerGroup } from "../../../viz-scroller/viz-scroller-slice";
 import {
-  clearInitialOffsets,
+  clearOffsets,
   fetchNewerMessages,
   fetchOlderMessages,
   startStreaming,
   stopStreaming,
   useChannelVizGroup,
-  useInitialOffsets,
+  useOffsets,
   useMessages,
 } from "./channel-viz-group-slice";
 
@@ -41,7 +41,7 @@ export const ChannelVizGroup = ({
     useChannelVizGroup(groupKey, guildId, channelId);
 
   const messages = useMessages(groupKey);
-  const initialOffsets = useInitialOffsets(groupKey);
+  const initialOffsets = useOffsets(groupKey);
   const { clientHeight, dScrollTop } = useVizScrollerGroup(groupKey);
 
   const dispatch = useAppDispatch();
@@ -92,7 +92,7 @@ export const ChannelVizGroup = ({
   // Clear/recompute offsets when new message is inserted
   const newestMessage = messages?.length && messages[0];
   useEffect(() => {
-    dispatch(clearInitialOffsets({ groupKey }));
+    dispatch(clearOffsets({ groupKey }));
   }, [dispatch, groupKey, newestMessage]);
 
   // Stop scrolling when we reach the end

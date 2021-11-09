@@ -12,16 +12,15 @@ import {
   selectVizScrollerGroup,
 } from "../../../viz-scroller/viz-scroller-slice";
 
+///////////
+// STATE //
+///////////
+
 type LayoutModes = "map" | "compact";
 
 type Layouts = Record<
   string,
   {
-    mode: LayoutModes;
-    prevMode?: LayoutModes;
-    isTransitioning: boolean;
-    transitionOffset: number;
-
     offsetMap: Record<string, number>;
     offsetTopMap: Record<string, number>;
     offsetBottomMap: Record<string, number>;
@@ -42,7 +41,13 @@ interface SubState {
   listener?: (message: MessageData) => void;
 
   layouts: Layouts;
+  mode: LayoutModes;
   layoutKey: string;
+
+  prevMode?: LayoutModes;
+  prevLayoutKey?: string;
+  isTransitioning: boolean;
+  transitionOffset: number;
 
   toxicityThreshold: number;
 }
@@ -54,10 +59,6 @@ interface ChannelVizGroupState {
 
 const subLayouts = (layouts: Layouts, layoutKey: string, write = true) => {
   const defaults = {
-    mode: "map",
-    isTransitioning: false,
-    transitionOffset: 0,
-
     offsetMap: {},
     offsetTopMap: {},
     offsetBottomMap: {},
@@ -75,13 +76,22 @@ const sub = (state: ChannelVizGroupState, groupKey: string, write = true) => {
   const defaults = {
     isStreaming: false,
     maxMessages: 0,
+
     layouts: {},
+    mode: "map",
     layoutKey: "default",
+
+    isTransitioning: false,
+    transitionOffset: 0,
 
     toxicityThreshold: 0,
   } as const;
   return state[groupKey] ?? (write ? (state[groupKey] = defaults) : defaults);
 };
+
+//////////////
+// REDUCERS //
+//////////////
 
 // Define the initial state using that type
 const initialState: ChannelVizGroupState = {};
@@ -113,7 +123,7 @@ export const ChannelVizGroups = createSlice({
       const slice = sub(state, groupKey);
       slice.maxMessages += amount;
     },
-    setInitialOffset(
+    setOffsets(
       state,
       action: {
         payload: {
@@ -142,7 +152,7 @@ export const ChannelVizGroups = createSlice({
       layout.offsetBottomMap[itemKey] = offsetBottom;
       layout.version++;
     },
-    clearInitialOffsets(
+    clearOffsets(
       state,
       action: { payload: { groupKey: string; layoutKey?: string } }
     ) {
@@ -163,11 +173,7 @@ export const ChannelVizGroups = createSlice({
       }
     ) {
       const { groupKey: key, mode } = action.payload;
-      const { layouts, layoutKey: layoutKey_ } = sub(state, key);
-      const { layoutKey = layoutKey_ } = action.payload;
-
-      const layout = subLayouts(layouts, layoutKey);
-      layout.mode = mode;
+      sub(state, key).mode = mode;
     },
     setTransitioning(
       state,
@@ -183,24 +189,27 @@ export const ChannelVizGroups = createSlice({
     ) {
       const {
         groupKey: key,
-        mode,
         isTransitioning,
         transitionOffset,
+        layoutKey,
+        mode,
       } = action.payload;
-      const { layouts, layoutKey: layoutKey_ } = sub(state, key);
-      const { layoutKey = layoutKey_ } = action.payload;
-
-      const layout = subLayouts(layouts, layoutKey);
+      const substate = sub(state, key);
 
       if (mode) {
-        layout.prevMode = layout.mode;
-        layout.mode = mode;
+        substate.prevMode = substate.mode;
+        substate.mode = mode;
       }
 
-      layout.isTransitioning = isTransitioning;
+      if (layoutKey) {
+        substate.prevLayoutKey = substate.layoutKey;
+        substate.layoutKey = layoutKey;
+      }
+
+      substate.isTransitioning = isTransitioning;
 
       if (typeof transitionOffset === "number")
-        layout.transitionOffset = transitionOffset;
+        substate.transitionOffset = transitionOffset;
     },
     setThreshold(
       state,
@@ -224,8 +233,8 @@ export const ChannelVizGroups = createSlice({
 const {
   setProperty,
   adjustMaxMessages,
-  setInitialOffset,
-  clearInitialOffsets,
+  setOffsets,
+  clearOffsets,
   setLayoutMode,
   setTransitioning,
   setThreshold,
@@ -233,13 +242,17 @@ const {
 } = ChannelVizGroups.actions;
 
 export {
-  setInitialOffset,
-  clearInitialOffsets,
+  setOffsets,
+  clearOffsets,
   setLayoutMode,
   setTransitioning,
   setThreshold,
   setLayoutKey,
 };
+
+/////////////
+// ACTIONS //
+/////////////
 
 const registerGroup =
   (groupKey: string, guildId: string, channelId: string): AppThunk =>
@@ -408,7 +421,11 @@ export const transitionLayoutMode =
     }, 1000);
   };
 
-export const selectLayout =
+///////////////
+// SELECTORS //
+///////////////
+
+export const selectLayoutData =
   (key: string, layoutKey?: string) => (state: RootState) => {
     const { layouts, layoutKey: layoutKey_ } = sub(
       state.channelVizGroups,
@@ -422,17 +439,21 @@ export const selectLayout =
   };
 
 // Return fewer items for optimization with useSelector(..., shallowEqual)
-export const selectLayoutMode =
-  (key: string, layoutKey_?: "string") => (state: RootState) => {
-    const { mode, isTransitioning, prevMode, transitionOffset, layoutKey } =
-      selectLayout(key, layoutKey_)(state);
-    return { mode, isTransitioning, prevMode, transitionOffset, layoutKey };
-  };
+export const selectLayoutMode = (key: string) => (state: RootState) => {
+  const { mode, isTransitioning, prevMode, transitionOffset, layoutKey } = sub(
+    state.channelVizGroups,
+    key,
+    false
+  );
+
+  return { mode, isTransitioning, prevMode, transitionOffset, layoutKey };
+};
 
 const selectInitialOffsets =
   (key: string, mode?: LayoutModes, layoutKey?: string) =>
   (state: RootState) => {
-    const initialOffsets = selectLayout(key, layoutKey)(state);
+    const layoutMode = selectLayoutMode(key)(state);
+    const layoutData = selectLayoutData(key, layoutKey)(state);
     const messages = selectMessages(key)(state);
 
     const offsetFuncs: Record<
@@ -440,61 +461,17 @@ const selectInitialOffsets =
       (message: MessageData) => number | undefined
     > = {
       map(message: MessageData) {
-        return initialOffsets.offsetMap[message.id];
+        return layoutData.offsetMap[message.id];
       },
       compact(message: MessageData) {
         if (!messages) return;
         const i = messages.indexOf(message);
-        return initialOffsets.m! * i + initialOffsets.b!;
+        return layoutData.m! * i + layoutData.b!;
       },
     };
 
-    return offsetFuncs[mode ?? initialOffsets.mode];
+    return offsetFuncs[mode ?? layoutMode.mode];
   };
-
-export const useInitialOffsets = (
-  key: string,
-  mode?: LayoutModes,
-  layoutKey?: string
-) => {
-  const initialOffsets = useAppSelector(
-    selectLayout(key, layoutKey),
-    shallowEqual
-  );
-  const messages = useAppSelector(selectMessages(key), arrayEqual);
-
-  const offsetFuncs: Record<
-    string,
-    (message: MessageData) => number | undefined
-  > = useMemo(() => ({}), []);
-
-  offsetFuncs.map = useCallback(
-    (message: MessageData) => initialOffsets.offsetMap[message.id],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [initialOffsets.version, initialOffsets.layoutKey]
-  );
-  offsetFuncs.compact = useCallback(
-    (message: MessageData) => {
-      if (!messages) return;
-      const i = messages.indexOf(message);
-      return initialOffsets.m! * i + initialOffsets.b!;
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [initialOffsets.b, initialOffsets.m, messages, initialOffsets.layoutKey]
-  );
-
-  return useMemo(
-    () => offsetFuncs[mode ?? initialOffsets.mode],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      mode,
-      initialOffsets.mode,
-      offsetFuncs.map,
-      offsetFuncs.compact,
-      initialOffsets.layoutKey,
-    ]
-  );
-};
 
 export const selectMessages = (key: string) => (state: RootState) => {
   const group = sub(state.channelVizGroups, key, false);
@@ -512,9 +489,6 @@ export const selectMessages = (key: string) => (state: RootState) => {
 
   return slice.messages?.slice(i, j);
 };
-
-export const useMessages = (key: string) =>
-  useAppSelector(selectMessages(key), arrayEqual);
 
 export const selectThreshold = (key: string) => (state: RootState) =>
   sub(state.channelVizGroups, key, false).toxicityThreshold;
@@ -563,6 +537,58 @@ export const selectChannelVizGroup =
       isRegistered: guildId_ && channelId_,
     };
   };
+
+///////////
+// HOOKS //
+///////////
+
+export const useOffsets = (
+  key: string,
+  mode?: LayoutModes,
+  layoutKey?: string
+) => {
+  const layoutMode = useAppSelector(selectLayoutMode(key), shallowEqual);
+  const layoutData = useAppSelector(
+    selectLayoutData(key, layoutKey),
+    shallowEqual
+  );
+  const messages = useAppSelector(selectMessages(key), arrayEqual);
+
+  const offsetFuncs: Record<
+    string,
+    (message: MessageData) => number | undefined
+  > = useMemo(() => ({}), []);
+
+  offsetFuncs.map = useCallback(
+    (message: MessageData) => layoutData.offsetMap[message.id],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [layoutData.version, layoutData.layoutKey]
+  );
+  offsetFuncs.compact = useCallback(
+    (message: MessageData) => {
+      if (!messages) return;
+      const i = messages.indexOf(message);
+      return layoutData.m! * i + layoutData.b!;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [layoutData.b, layoutData.m, messages, layoutData.layoutKey]
+  );
+
+  return useMemo(
+    () => offsetFuncs[mode ?? layoutMode.mode],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      mode,
+      layoutMode.mode,
+      offsetFuncs.map,
+      offsetFuncs.compact,
+      layoutData.layoutKey,
+    ]
+  );
+};
+
+export const useMessages = (key: string) =>
+  useAppSelector(selectMessages(key), arrayEqual);
 
 export const useChannelVizGroup = (
   groupKey: string,
