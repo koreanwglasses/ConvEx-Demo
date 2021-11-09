@@ -7,10 +7,10 @@ export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
 export const usePreviousValue = <T>(
   value: T,
-  onChange?: (prevValue: T, currValue: T) => void
+  onChange?: (prevValue: T | undefined, currValue: T) => void
 ) => {
-  const valueOnLastRender = useRef(value);
-  const previousValue = useRef(value);
+  const valueOnLastRender = useRef<T>();
+  const previousValue = useRef<T>();
 
   if (valueOnLastRender.current !== value) {
     previousValue.current = valueOnLastRender.current;

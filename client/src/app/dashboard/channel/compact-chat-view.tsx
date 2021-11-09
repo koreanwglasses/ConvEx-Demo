@@ -12,8 +12,8 @@ import {
   useMessages,
   useChannelVizGroup,
   selectLayout,
-  clearInitialOffsets,
   selectThreshold,
+  setLayoutKey,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import { shallowEqual } from "react-redux";
@@ -95,7 +95,9 @@ export const CompactChatView = ({
   }, [first, last]);
 
   const prevWidth = usePreviousValue(width, () =>
-    setTimeout(() => dispatch(clearInitialOffsets({ groupKey })), 300)
+    dispatch(
+      setLayoutKey({ groupKey, layoutKey: width === 500 ? "large" : "default" })
+    )
   );
 
   const baseline =
@@ -107,7 +109,7 @@ export const CompactChatView = ({
       sx={{ transition: "max-width 0.3s", overflowX: "hidden" }}
       style={{
         maxWidth: hidden ? 0 : width,
-        width: Math.max(width, prevWidth),
+        width: Math.max(width, prevWidth ?? 0),
       }}
       fixedBaseline
     >
@@ -248,10 +250,7 @@ const CompactMessageView = ({
 }) => {
   const { guildId, channelId } = useChannelVizGroup(groupKey);
   const threshold = useAppSelector(selectThreshold(groupKey));
-  const { offsetMap } = useAppSelector(
-    selectLayout(groupKey),
-    shallowEqual
-  );
+  const { offsetMap } = useAppSelector(selectLayout(groupKey), shallowEqual);
 
   const ref = useRef<HTMLDivElement>(null);
 

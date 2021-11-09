@@ -14,16 +14,9 @@ import {
 
 type LayoutModes = "map" | "compact";
 
-interface SubState {
-  guildId?: string;
-  channelId?: string;
-
-  newestMessage?: MessageData;
-  maxMessages: number;
-  isStreaming: boolean;
-  listener?: (message: MessageData) => void;
-
-  layout: {
+type Layouts = Record<
+  string,
+  {
     mode: LayoutModes;
     prevMode?: LayoutModes;
     isTransitioning: boolean;
@@ -36,7 +29,20 @@ interface SubState {
 
     m: number;
     b: number;
-  };
+  }
+>;
+
+interface SubState {
+  guildId?: string;
+  channelId?: string;
+
+  newestMessage?: MessageData;
+  maxMessages: number;
+  isStreaming: boolean;
+  listener?: (message: MessageData) => void;
+
+  layouts: Layouts;
+  layoutKey: string;
 
   toxicityThreshold: number;
 }
@@ -46,23 +52,31 @@ interface ChannelVizGroupState {
   [key: string]: SubState;
 }
 
+const subLayouts = (layouts: Layouts, layoutKey: string, write = true) => {
+  const defaults = {
+    mode: "map",
+    isTransitioning: false,
+    transitionOffset: 0,
+
+    offsetMap: {},
+    offsetTopMap: {},
+    offsetBottomMap: {},
+    version: 0,
+
+    m: -21,
+    b: -10,
+  } as const;
+  return (
+    layouts[layoutKey] ?? (write ? (layouts[layoutKey] = defaults) : defaults)
+  );
+};
+
 const sub = (state: ChannelVizGroupState, groupKey: string, write = true) => {
   const defaults = {
     isStreaming: false,
     maxMessages: 0,
-    layout: {
-      mode: "map",
-      isTransitioning: false,
-      transitionOffset: 0,
-
-      offsetMap: {},
-      offsetTopMap: {},
-      offsetBottomMap: {},
-      version: 0,
-
-      m: -21,
-      b: -10,
-    },
+    layouts: {},
+    layoutKey: "default",
 
     toxicityThreshold: 0,
   } as const;
@@ -108,6 +122,7 @@ export const ChannelVizGroups = createSlice({
           offset: number;
           offsetBottom: number;
           offsetTop: number;
+          layoutKey?: string;
         };
       }
     ) {
@@ -118,27 +133,41 @@ export const ChannelVizGroups = createSlice({
         offsetBottom,
         offsetTop,
       } = action.payload;
-      const substate = sub(state, key);
-      substate.layout.offsetMap[itemKey] = offset;
-      substate.layout.offsetTopMap[itemKey] = offsetTop;
-      substate.layout.offsetBottomMap[itemKey] = offsetBottom;
-      substate.layout.version++;
+      const { layouts, layoutKey: layoutKey_ } = sub(state, key);
+      const { layoutKey = layoutKey_ } = action.payload;
+
+      const layout = subLayouts(layouts, layoutKey);
+      layout.offsetMap[itemKey] = offset;
+      layout.offsetTopMap[itemKey] = offsetTop;
+      layout.offsetBottomMap[itemKey] = offsetBottom;
+      layout.version++;
     },
-    clearInitialOffsets(state, action: { payload: { groupKey: string } }) {
-      const { groupKey: key } = action.payload;
-      const substate = sub(state, key);
-      substate.layout.offsetMap = {};
-      substate.layout.offsetTopMap = {};
-      substate.layout.offsetBottomMap = {};
-      substate.layout.version++;
+    clearInitialOffsets(
+      state,
+      action: { payload: { groupKey: string; layoutKey?: string } }
+    ) {
+      const { groupKey } = action.payload;
+      const { layouts, layoutKey: layoutKey_ } = sub(state, groupKey);
+      const { layoutKey = layoutKey_ } = action.payload;
+
+      const layout = subLayouts(layouts, layoutKey);
+      layout.offsetMap = {};
+      layout.offsetTopMap = {};
+      layout.offsetBottomMap = {};
+      layout.version++;
     },
     setLayoutMode(
       state,
-      action: { payload: { groupKey: string; mode: LayoutModes } }
+      action: {
+        payload: { groupKey: string; mode: LayoutModes; layoutKey?: string };
+      }
     ) {
-      const { groupKey: key, mode: type } = action.payload;
-      const substate = sub(state, key);
-      substate.layout.mode = type;
+      const { groupKey: key, mode } = action.payload;
+      const { layouts, layoutKey: layoutKey_ } = sub(state, key);
+      const { layoutKey = layoutKey_ } = action.payload;
+
+      const layout = subLayouts(layouts, layoutKey);
+      layout.mode = mode;
     },
     setTransitioning(
       state,
@@ -148,6 +177,7 @@ export const ChannelVizGroups = createSlice({
           mode?: LayoutModes;
           isTransitioning: boolean;
           transitionOffset?: number;
+          layoutKey?: string;
         };
       }
     ) {
@@ -157,7 +187,11 @@ export const ChannelVizGroups = createSlice({
         isTransitioning,
         transitionOffset,
       } = action.payload;
-      const { layout } = sub(state, key);
+      const { layouts, layoutKey: layoutKey_ } = sub(state, key);
+      const { layoutKey = layoutKey_ } = action.payload;
+
+      const layout = subLayouts(layouts, layoutKey);
+
       if (mode) {
         layout.prevMode = layout.mode;
         layout.mode = mode;
@@ -177,6 +211,13 @@ export const ChannelVizGroups = createSlice({
       const { groupKey, threshold } = action.payload;
       sub(state, groupKey).toxicityThreshold = threshold;
     },
+    setLayoutKey(
+      state,
+      action: { payload: { groupKey: string; layoutKey: string } }
+    ) {
+      const { groupKey, layoutKey } = action.payload;
+      sub(state, groupKey).layoutKey = layoutKey;
+    },
   },
 });
 
@@ -188,6 +229,7 @@ const {
   setLayoutMode,
   setTransitioning,
   setThreshold,
+  setLayoutKey,
 } = ChannelVizGroups.actions;
 
 export {
@@ -196,6 +238,7 @@ export {
   setLayoutMode,
   setTransitioning,
   setThreshold,
+  setLayoutKey,
 };
 
 const registerGroup =
@@ -365,21 +408,31 @@ export const transitionLayoutMode =
     }, 1000);
   };
 
-export const selectLayout = (key: string) => (state: RootState) =>
-  sub(state.channelVizGroups, key, false).layout;
+export const selectLayout =
+  (key: string, layoutKey?: string) => (state: RootState) => {
+    const { layouts, layoutKey: layoutKey_ } = sub(
+      state.channelVizGroups,
+      key,
+      false
+    );
+    return {
+      ...subLayouts(layouts, layoutKey ?? layoutKey_, false),
+      layoutKey: layoutKey ?? layoutKey_,
+    };
+  };
 
-export const selectLayoutMode = (key: string) => (state: RootState) => {
-  const { mode, isTransitioning, prevMode, transitionOffset } = sub(
-    state.channelVizGroups,
-    key,
-    false
-  ).layout;
-  return { mode, isTransitioning, prevMode, transitionOffset };
-};
+// Return fewer items for optimization with useSelector(..., shallowEqual)
+export const selectLayoutMode =
+  (key: string, layoutKey_?: "string") => (state: RootState) => {
+    const { mode, isTransitioning, prevMode, transitionOffset, layoutKey } =
+      selectLayout(key, layoutKey_)(state);
+    return { mode, isTransitioning, prevMode, transitionOffset, layoutKey };
+  };
 
 const selectInitialOffsets =
-  (key: string, mode?: LayoutModes) => (state: RootState) => {
-    const initialOffsets = selectLayout(key)(state);
+  (key: string, mode?: LayoutModes, layoutKey?: string) =>
+  (state: RootState) => {
+    const initialOffsets = selectLayout(key, layoutKey)(state);
     const messages = selectMessages(key)(state);
 
     const offsetFuncs: Record<
@@ -399,8 +452,15 @@ const selectInitialOffsets =
     return offsetFuncs[mode ?? initialOffsets.mode];
   };
 
-export const useInitialOffsets = (key: string, mode?: LayoutModes) => {
-  const initialOffsets = useAppSelector(selectLayout(key), shallowEqual);
+export const useInitialOffsets = (
+  key: string,
+  mode?: LayoutModes,
+  layoutKey?: string
+) => {
+  const initialOffsets = useAppSelector(
+    selectLayout(key, layoutKey),
+    shallowEqual
+  );
   const messages = useAppSelector(selectMessages(key), arrayEqual);
 
   const offsetFuncs: Record<
@@ -411,7 +471,7 @@ export const useInitialOffsets = (key: string, mode?: LayoutModes) => {
   offsetFuncs.map = useCallback(
     (message: MessageData) => initialOffsets.offsetMap[message.id],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [initialOffsets.version]
+    [initialOffsets.version, initialOffsets.layoutKey]
   );
   offsetFuncs.compact = useCallback(
     (message: MessageData) => {
@@ -419,13 +479,20 @@ export const useInitialOffsets = (key: string, mode?: LayoutModes) => {
       const i = messages.indexOf(message);
       return initialOffsets.m! * i + initialOffsets.b!;
     },
-    [initialOffsets.b, initialOffsets.m, messages]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [initialOffsets.b, initialOffsets.m, messages, initialOffsets.layoutKey]
   );
 
   return useMemo(
     () => offsetFuncs[mode ?? initialOffsets.mode],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [mode, initialOffsets.mode, offsetFuncs.map, offsetFuncs.compact]
+    [
+      mode,
+      initialOffsets.mode,
+      offsetFuncs.map,
+      offsetFuncs.compact,
+      initialOffsets.layoutKey,
+    ]
   );
 };
 

@@ -80,10 +80,8 @@ const D3Viz = <Selections extends Record<string, unknown>>({
 
   const { canvasHeight, clientHeight, offset } = useVizScrollerGroup(groupKey);
 
-  const { isTransitioning, prevMode, transitionOffset } = useAppSelector(
-    selectLayoutMode(groupKey),
-    shallowEqual
-  );
+  const { isTransitioning, prevMode, transitionOffset, layoutKey } =
+    useAppSelector(selectLayoutMode(groupKey), shallowEqual);
 
   const initialOffsets = useInitialOffsets(groupKey);
   const prevInitialOffsets = useInitialOffsets(groupKey, prevMode);
@@ -222,6 +220,7 @@ const D3Viz = <Selections extends Record<string, unknown>>({
     prevInitialOffsets,
     transitionOffset,
     width,
+    layoutKey,
   ]);
 
   const prevWidth = usePreviousValue(width);
@@ -232,7 +231,7 @@ const D3Viz = <Selections extends Record<string, unknown>>({
       sx={{ position: "relative", transition: "max-width 0.3s" }}
       style={{
         maxWidth: hidden ? 0 : width,
-        width: Math.max(width, prevWidth),
+        width: Math.max(width, prevWidth ?? 0),
       }}
       ref={containerRef}
     >
