@@ -248,7 +248,7 @@ const CompactMessageView = ({
 }) => {
   const { guildId, channelId } = useChannelVizGroup(groupKey);
   const threshold = useAppSelector(selectThreshold(groupKey));
-  const { offsetMap, offsetBottomMap } = useAppSelector(
+  const { offsetMap } = useAppSelector(
     selectLayout(groupKey),
     shallowEqual
   );

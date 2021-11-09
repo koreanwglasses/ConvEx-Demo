@@ -3,13 +3,10 @@ import * as d3 from "d3";
 import { useRef } from "react";
 import { MessageData } from "../../../common/api-data-types";
 import { useAppDispatch, useAppSelector } from "../../hooks";
-import { store } from "../../store";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import {
-  selectLayoutMode,
   selectThreshold,
   setThreshold,
-  transitionLayoutMode,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useD3VizComponent } from "./d3-analysis-viz";
 
