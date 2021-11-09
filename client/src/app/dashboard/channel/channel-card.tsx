@@ -28,7 +28,7 @@ import { AnalysisBars } from "./analysis-bars";
 import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
 import {
   selectLayoutMode,
-  transitionLayout,
+  transitionLayouts,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
 
@@ -39,14 +39,14 @@ export const ChannelCard = ({
   channelId: string;
   guildId: string;
 }) => {
-  const dispatch = useAppDispatch();
   const groupKey = channelId;
 
+  const dispatch = useAppDispatch();
   const channel = useAppSelector(selectChannelById(guildId, channelId));
+  const { mode } = useAppSelector(selectLayoutMode(groupKey), shallowEqual);
 
   const [loaded, setLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
-
   useEffect(() => {
     if (expanded && !loaded) setLoaded(true);
   }, [expanded, loaded]);
@@ -59,12 +59,18 @@ export const ChannelCard = ({
     const newMaximized = !maximized;
     setMaximized(newMaximized);
     if (newMaximized && !expanded) setExpanded(true);
+
     dispatch(
       setClientHeight({ key: groupKey, height: newMaximized ? 600 : 400 })
     );
+    dispatch(
+      transitionLayouts({
+        groupKey,
+        layoutKey: newMaximized ? "large" : "default",
+        smooth: false
+      })
+    );
   };
-
-  const { mode } = useAppSelector(selectLayoutMode(groupKey), shallowEqual);
 
   type ChartType = "CompactChatView" | "AnalysisBars";
   const [charts, setCharts] = useState<ChartType[]>(["CompactChatView"]);
@@ -79,9 +85,9 @@ export const ChannelCard = ({
     setCharts(value);
 
     if (wasChatOpen && !isChatOpen && mode !== "compact")
-      dispatch(transitionLayout({ groupKey, mode: "compact", pivot }));
+      dispatch(transitionLayouts({ groupKey, mode: "compact", pivot }));
     if (!wasChatOpen && isChatOpen && mode !== "map")
-      dispatch(transitionLayout({ groupKey, mode: "map", pivot }));
+      dispatch(transitionLayouts({ groupKey, mode: "map", pivot }));
   };
 
   // Workaround for callback not updating in component

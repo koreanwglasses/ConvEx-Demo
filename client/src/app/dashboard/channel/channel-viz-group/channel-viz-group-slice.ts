@@ -166,24 +166,31 @@ export const ChannelVizGroups = createSlice({
       layout.offsetBottomMap = {};
       layout.version++;
     },
+    setLayoutKey(
+      state,
+      action: { payload: { groupKey: string; layoutKey: string } }
+    ) {
+      const { groupKey, layoutKey } = action.payload;
+      sub(state, groupKey).layoutKey = layoutKey;
+    },
     setLayoutMode(
       state,
       action: {
-        payload: { groupKey: string; mode: LayoutModes; layoutKey?: string };
+        payload: { groupKey: string; mode: LayoutModes };
       }
     ) {
       const { groupKey: key, mode } = action.payload;
       sub(state, key).mode = mode;
     },
-    setTransitioning(
+    setTransition(
       state,
       action: {
         payload: {
           groupKey: string;
           mode?: LayoutModes;
+          layoutKey?: string;
           isTransitioning: boolean;
           transitionOffset?: number;
-          layoutKey?: string;
         };
       }
     ) {
@@ -220,13 +227,6 @@ export const ChannelVizGroups = createSlice({
       const { groupKey, threshold } = action.payload;
       sub(state, groupKey).toxicityThreshold = threshold;
     },
-    setLayoutKey(
-      state,
-      action: { payload: { groupKey: string; layoutKey: string } }
-    ) {
-      const { groupKey, layoutKey } = action.payload;
-      sub(state, groupKey).layoutKey = layoutKey;
-    },
   },
 });
 
@@ -235,20 +235,13 @@ const {
   adjustMaxMessages,
   setOffsets,
   clearOffsets,
-  setLayoutMode,
-  setTransitioning,
-  setThreshold,
   setLayoutKey,
+  setLayoutMode,
+  setTransition,
+  setThreshold,
 } = ChannelVizGroups.actions;
 
-export {
-  setOffsets,
-  clearOffsets,
-  setLayoutMode,
-  setTransitioning,
-  setThreshold,
-  setLayoutKey,
-};
+export { setOffsets, clearOffsets, setLayoutMode, setLayoutKey, setThreshold };
 
 /////////////
 // ACTIONS //
@@ -380,8 +373,20 @@ export const stopStreaming =
     dispatch(setProperty({ groupKey, key: "isStreaming", value: false }));
   };
 
-export const transitionLayout =
-  ({ groupKey, mode, layoutKey, pivot }: { groupKey: string; mode?: LayoutModes; layoutKey?: string, pivot?: MessageData; }): AppThunk =>
+export const transitionLayouts =
+  ({
+    groupKey,
+    mode,
+    layoutKey,
+    pivot,
+    smooth = true,
+  }: {
+    groupKey: string;
+    mode?: LayoutModes;
+    layoutKey?: string;
+    pivot?: MessageData;
+    smooth?: boolean;
+  }): AppThunk =>
   (dispatch, getState) => {
     const messages = selectMessages(groupKey)(getState());
     const prevY = selectOffsets(groupKey)(getState());
@@ -396,29 +401,30 @@ export const transitionLayout =
         (message) => (prevY(message) ?? 0) < scrollTop - clientHeight / 2
       );
 
-    const transitionOffset =
-      pivot_ &&
-      typeof nextY(pivot_) === "number" &&
-      typeof prevY(pivot_) === "number" &&
-      nextY(pivot_)! - prevY(pivot_)!;
-
-    if (typeof transitionOffset !== "number") {
-      console.warn("Required positions for transition not yet computed");
-      return;
+    const transitionOffset = pivot_ && nextY(pivot_) - prevY(pivot_);
+    if (typeof transitionOffset !== "number" || isNaN(transitionOffset)) {
+      console.warn("Could not determine transitionOffset");
+    } else {
+      dispatch(adjustScrollTop(groupKey, transitionOffset));
     }
 
-    dispatch(adjustScrollTop(groupKey, transitionOffset));
-    dispatch(
-      setTransitioning({
-        groupKey,
-        mode,
-        isTransitioning: true,
-        transitionOffset,
-      })
-    );
-    setTimeout(() => {
-      dispatch(setTransitioning({ groupKey, isTransitioning: false }));
-    }, 1000);
+    if (smooth) {
+      dispatch(
+        setTransition({
+          groupKey,
+          mode,
+          layoutKey,
+          transitionOffset,
+          isTransitioning: true,
+        })
+      );
+      setTimeout(() => {
+        dispatch(setTransition({ groupKey, isTransitioning: false }));
+      }, 1000);
+    } else {
+      layoutKey && dispatch(setLayoutKey({ groupKey, layoutKey }));
+      mode && dispatch(setLayoutMode({ groupKey, mode }));
+    }
   };
 
 ///////////////
@@ -456,17 +462,13 @@ const selectOffsets =
     const layoutData = selectLayoutData(key, layoutKey)(state);
     const messages = selectMessages(key)(state);
 
-    const offsetFuncs: Record<
-      LayoutModes,
-      (message: MessageData) => number | undefined
-    > = {
+    const offsetFuncs = {
       map(message: MessageData) {
         return layoutData.offsetMap[message.id];
       },
       compact(message: MessageData) {
-        if (!messages) return;
-        const i = messages.indexOf(message);
-        return layoutData.m! * i + layoutData.b!;
+        const i = messages!.indexOf(message);
+        return layoutData.m * i + layoutData.b;
       },
     };
 

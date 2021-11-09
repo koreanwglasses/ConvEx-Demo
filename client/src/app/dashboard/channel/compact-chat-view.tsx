@@ -13,7 +13,6 @@ import {
   useChannelVizGroup,
   selectLayoutData,
   selectThreshold,
-  setLayoutKey,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import { shallowEqual } from "react-redux";
@@ -30,9 +29,9 @@ export const CompactChatView = ({
   const { clientHeight, canvasHeight, offset } = useVizScrollerGroup(groupKey);
   const { reachedBeginning } = useChannelVizGroup(groupKey);
   const messages = useMessages(groupKey);
-  const dispatch = useAppDispatch();
   const { offsetMap, offsetBottomMap, offsetTopMap } = useAppSelector(
-    selectLayoutData(groupKey)
+    selectLayoutData(groupKey),
+    shallowEqual
   );
 
   // Only rendering default messages and replies for now
@@ -94,11 +93,7 @@ export const CompactChatView = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [first, last]);
 
-  const prevWidth = usePreviousValue(width, () =>
-    dispatch(
-      setLayoutKey({ groupKey, layoutKey: width === 500 ? "large" : "default" })
-    )
-  );
+  const prevWidth = usePreviousValue(width);
 
   const baseline =
     (messagesToRender?.[0] && offsetBottomMap[messagesToRender[0].id]) ?? 0;
