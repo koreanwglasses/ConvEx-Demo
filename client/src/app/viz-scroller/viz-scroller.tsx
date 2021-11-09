@@ -44,36 +44,38 @@ export const VizGroupContainer = React.forwardRef<HTMLDivElement, Props>(
     }, [dScrollTop, dispatch, groupKey]);
 
     return (
-      <Box
-        sx={{
-          height: clientHeight,
-          overflowY: "scroll",
-          scrollbarWidth: "none",
-          display: "flex",
-          flexFlow: "column-reverse",
-          "::-webkit-scrollbar": {
-            display: "none",
-          },
-        }}
-        onScroll={onScroll}
-        ref={mergeRefs([ref, ref_])}
-      >
-        <div
-          style={{
-            flexShrink: 0,
+      <Box sx={{ transform: "translate(0,0)" }}>
+        <Box
+          sx={{
+            height: clientHeight,
+            overflowY: "scroll",
+            scrollbarWidth: "none",
             display: "flex",
-            alignItems: "flex-start",
-            height: ref_.current
-              ? Math.max(
-                  scrollHeight,
-                  clientHeight - ref_.current.scrollTop,
-                  clientHeight - ref_.current.scrollTop - dScrollTop
-                )
-              : scrollHeight,
+            flexFlow: "column-reverse",
+            "::-webkit-scrollbar": {
+              display: "none",
+            },
           }}
+          onScroll={onScroll}
+          ref={mergeRefs([ref, ref_])}
         >
-          {children}
-        </div>
+          <div
+            style={{
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "flex-start",
+              height: ref_.current
+                ? Math.max(
+                    scrollHeight,
+                    clientHeight - ref_.current.scrollTop,
+                    clientHeight - ref_.current.scrollTop - dScrollTop
+                  )
+                : scrollHeight,
+            }}
+          >
+            {children}
+          </div>
+        </Box>
       </Box>
     );
   }

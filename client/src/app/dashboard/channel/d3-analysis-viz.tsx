@@ -1,10 +1,8 @@
-import { CircularProgress } from "@mui/material";
-import { Box } from "@mui/system";
 import { MessageData } from "../../../common/api-data-types";
 import { useAppSelector, usePreviousValue } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
 import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
-import {
+import React, {
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -46,14 +44,21 @@ export const useD3VizComponent = <Selections extends Record<string, unknown>>(
   draw: (args: DrawArgs & Selections) => void
 ) =>
   useMemo(
-    () =>
-      (props: { filterMargin?: number; hidden?: boolean; width?: number }) =>
-        <D3Viz {...props} initialize={initialize} draw={draw} />,
+    () => (props: Omit<Props<Selections>, "initialize" | "draw">) =>
+      <D3Viz {...props} initialize={initialize} draw={draw} />,
     // No deps since these functions are intended to be unchanging even if they
     // are technically different instances
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
+
+type Props<Selections> = React.PropsWithChildren<{
+  initialize: (svgRef: SVGSVGElement) => Selections;
+  draw: (args: DrawArgs & Selections) => void;
+  filterMargin?: number;
+  hidden?: boolean;
+  width?: number;
+}>;
 
 const D3Viz = <Selections extends Record<string, unknown>>({
   initialize,
@@ -61,13 +66,8 @@ const D3Viz = <Selections extends Record<string, unknown>>({
   hidden = false,
   width = 300,
   filterMargin = 0,
-}: {
-  initialize: (svgRef: SVGSVGElement) => Selections;
-  draw: (args: DrawArgs & Selections) => void;
-  filterMargin?: number;
-  hidden?: boolean;
-  width?: number;
-}) => {
+  children,
+}: Props<Selections>) => {
   const groupKey = useGroupKey();
   const messages = useMessages(groupKey);
 
@@ -242,23 +242,7 @@ const D3Viz = <Selections extends Record<string, unknown>>({
         ref={svgRef}
         style={{ position: "relative" }}
       />
-      {!messages && (
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            width,
-            minWidth: 300,
-            position: "absolute",
-          }}
-          style={{
-            height: clientHeight,
-          }}
-        >
-          <CircularProgress />
-        </Box>
-      )}
+      {children}
     </VizScroller>
   );
 };
