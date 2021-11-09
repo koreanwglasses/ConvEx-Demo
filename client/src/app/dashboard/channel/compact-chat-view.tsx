@@ -8,7 +8,6 @@ import { VizScroller } from "../../viz-scroller/viz-scroller";
 import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import * as d3 from "d3";
 import {
-  useInitialOffsets,
   setInitialOffset,
   useMessages,
   useChannelVizGroup,
@@ -30,21 +29,29 @@ export const CompactChatView = ({
   const groupKey = useGroupKey();
   const { clientHeight, canvasHeight, offset } = useVizScrollerGroup(groupKey);
   const { reachedBeginning } = useChannelVizGroup(groupKey);
-  const initialOffsets = useInitialOffsets(groupKey);
   const messages = useMessages(groupKey);
   const dispatch = useAppDispatch();
+  const { offsetBottomMap, offsetTopMap } = useAppSelector(
+    selectLayout(groupKey)
+  );
 
   // Only rendering default messages and replies for now
-  const messagesToRender = useMemo(
-    () =>
-      messages?.filter(
-        (message) =>
-          (message.type === "DEFAULT" || message.type === "REPLY") &&
-          -(initialOffsets?.(message) ?? 0) <
-            Math.ceil(1.5 + offset / canvasHeight) * canvasHeight
-      ),
-    [canvasHeight, initialOffsets, messages, offset]
-  );
+  const messagesToRender = useMemo(() => {
+    const messagesToRender = messages?.filter(
+      (message) =>
+        (message.type === "DEFAULT" || message.type === "REPLY") &&
+        (offsetBottomMap[message.id] ?? 0) >= -(offset + canvasHeight)
+    );
+
+    return messagesToRender?.filter((message, i, messages) => {
+      const next = i + 1 < messages.length && messages[i + 1];
+      return (
+        (next && !(next.id in offsetBottomMap)) ||
+        !(message.id in offsetTopMap) ||
+        offsetTopMap[message.id] - 40 < -offset
+      );
+    });
+  }, [canvasHeight, messages, offset, offsetBottomMap, offsetTopMap]);
   const first = messagesToRender?.length && messagesToRender[0];
   const last =
     messagesToRender?.length && messagesToRender[messagesToRender.length - 1];
@@ -83,6 +90,10 @@ export const CompactChatView = ({
     setTimeout(() => dispatch(clearInitialOffsets({ groupKey })), 300)
   );
 
+  const baseline =
+    -((messagesToRender?.[0] && offsetBottomMap[messagesToRender[0].id]) ?? 0) -
+    16;
+
   return (
     <VizScroller
       groupKey={groupKey}
@@ -104,6 +115,7 @@ export const CompactChatView = ({
           pl: 1,
         }}
       >
+        <Box style={{ height: baseline }} />
         {messageGroups?.map((group) => (
           <CompactMessageGroup
             messages={group}
@@ -155,7 +167,6 @@ const CompactMessageGroup = ({
     pending,
   } = useAppSelector(selectMember(guildId, memberId));
 
-
   const dispatch = useAppDispatch();
   useEffect(() => {
     if (!isValid && !pending) {
@@ -164,15 +175,15 @@ const CompactMessageGroup = ({
   }, [isValid, pending, dispatch, memberId, guildId]);
 
   // check toxicity of messages to see if avatar and icon should fade
-  const analyses = useAppSelector(selectBatchAnalysis(messages), arrayEqual)
+  const analyses = useAppSelector(selectBatchAnalysis(messages), arrayEqual);
   const threshold = useAppSelector(selectThreshold(groupKey));
-  const shouldFade = !analyses.find(({analysis}) => {
-    const tox = analysis?.overallToxicity
-    if(typeof tox !== "number") return true;
-    if(tox >= threshold) return true;
+  const shouldFade = !analyses.find(({ analysis }) => {
+    const tox = analysis?.overallToxicity;
+    if (typeof tox !== "number") return true;
+    if (tox >= threshold) return true;
     return false;
-  })
-  const opacity = shouldFade ? 0.4: 1;
+  });
+  const opacity = shouldFade ? 0.4 : 1;
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -180,10 +191,10 @@ const CompactMessageGroup = ({
         src={member?.displayAvatarURL}
         alt={member?.user.username}
         sx={{ width: 24, height: 24, mr: 1, mt: 0.5 }}
-        style={{opacity}}
+        style={{ opacity }}
       />
       <Box sx={{ display: "flex", flexFlow: "column", flexGrow: 1 }}>
-        <Box sx={{ display: "flex", mb: 0.25 }} style={{opacity}}>
+        <Box sx={{ display: "flex", mb: 0.25 }} style={{ opacity }}>
           <Typography
             variant="subtitle2"
             sx={{ mr: 1, color: "#ffffff" }}
@@ -231,7 +242,10 @@ const CompactMessageView = ({
 }) => {
   const { guildId, channelId } = useChannelVizGroup(groupKey);
   const threshold = useAppSelector(selectThreshold(groupKey));
-  const { offsetMap } = useAppSelector(selectLayout(groupKey), shallowEqual);
+  const { offsetMap } = useAppSelector(
+    selectLayout(groupKey),
+    shallowEqual
+  );
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -245,6 +259,13 @@ const CompactMessageView = ({
           offset:
             ref.current.offsetTop +
             ref.current.offsetHeight / 2 -
+            (ref.current.offsetParent?.clientHeight ?? 0),
+          offsetTop:
+            ref.current.offsetTop -
+            (ref.current.offsetParent?.clientHeight ?? 0),
+          offsetBottom:
+            ref.current.offsetTop +
+            ref.current.clientHeight -
             (ref.current.offsetParent?.clientHeight ?? 0),
         })
       );

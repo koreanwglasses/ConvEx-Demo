@@ -30,6 +30,8 @@ interface SubState {
     transitionOffset: number;
 
     offsetMap: Record<string, number>;
+    offsetTopMap: Record<string, number>;
+    offsetBottomMap: Record<string, number>;
     version: number;
 
     m: number;
@@ -54,6 +56,8 @@ const sub = (state: ChannelVizGroupState, groupKey: string, write = true) => {
       transitionOffset: 0,
 
       offsetMap: {},
+      offsetTopMap: {},
+      offsetBottomMap: {},
       version: 0,
 
       m: -21,
@@ -97,17 +101,35 @@ export const ChannelVizGroups = createSlice({
     },
     setInitialOffset(
       state,
-      action: { payload: { groupKey: string; itemKey: string; offset: number } }
+      action: {
+        payload: {
+          groupKey: string;
+          itemKey: string;
+          offset: number;
+          offsetBottom: number;
+          offsetTop: number;
+        };
+      }
     ) {
-      const { groupKey: key, itemKey, offset } = action.payload;
+      const {
+        groupKey: key,
+        itemKey,
+        offset,
+        offsetBottom,
+        offsetTop,
+      } = action.payload;
       const substate = sub(state, key);
       substate.layout.offsetMap[itemKey] = offset;
+      substate.layout.offsetTopMap[itemKey] = offsetTop;
+      substate.layout.offsetBottomMap[itemKey] = offsetBottom;
       substate.layout.version++;
     },
     clearInitialOffsets(state, action: { payload: { groupKey: string } }) {
       const { groupKey: key } = action.payload;
       const substate = sub(state, key);
       substate.layout.offsetMap = {};
+      substate.layout.offsetTopMap = {};
+      substate.layout.offsetBottomMap = {};
       substate.layout.version++;
     },
     setLayoutMode(
