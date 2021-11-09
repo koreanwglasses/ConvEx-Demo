@@ -1,12 +1,11 @@
-import { Avatar, Box, CircularProgress, Typography } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import { useEffect, useMemo, useRef } from "react";
-import { MessageData } from "../../../common/api-data-types";
-import { selectAnalysis, selectBatchAnalysis } from "../../data/analyses-slice";
+import { AnalysisData, MessageData } from "../../../common/api-data-types";
+import { selectBatchAnalysis } from "../../data/analyses-slice";
 import { fetchMember, selectMember } from "../../data/members-slice";
 import { useAppDispatch, useAppSelector, usePreviousValue } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
 import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
-import * as d3 from "d3";
 import {
   setOffsets,
   useMessages,
@@ -17,6 +16,10 @@ import {
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import { shallowEqual } from "react-redux";
 import { arrayEqual } from "../../../utils";
+import {
+  CompactMessageGroupBase,
+  CompactMessageViewBase,
+} from "../../components/ui/compact-chat-view-base";
 
 export const CompactChatView = ({
   hidden = false,
@@ -180,71 +183,31 @@ const CompactMessageGroup = ({
   // check toxicity of messages to see if avatar and icon should fade
   const analyses = useAppSelector(selectBatchAnalysis(messages), arrayEqual);
   const threshold = useAppSelector(selectThreshold(groupKey));
-  const shouldFade = !analyses.find(({ analysis }) => {
-    const tox = analysis?.overallToxicity;
-    if (typeof tox !== "number") return true;
-    if (tox >= threshold) return true;
-    return false;
-  });
-  const opacity = shouldFade ? 0.4 : 1;
 
   return (
-    <Box sx={{ display: "flex" }}>
-      <Avatar
-        src={member?.displayAvatarURL}
-        alt={member?.user.username}
-        sx={{ width: 24, height: 24, mr: 1, mt: 0.5 }}
-        style={{ opacity }}
-      />
-      <Box sx={{ display: "flex", flexFlow: "column", flexGrow: 1 }}>
-        <Box sx={{ display: "flex", mb: 0.25 }} style={{ opacity }}>
-          <Typography
-            variant="subtitle2"
-            sx={{ mr: 1, color: "#ffffff" }}
-            style={{
-              color:
-                member?.displayHexColor !== "#000000"
-                  ? member?.displayHexColor
-                  : undefined,
-            }}
-          >
-            {member?.user.username ?? "..."}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ position: "relative", top: 1, opacity: 0.8 }}
-          >
-            {new Date(messages[0].createdTimestamp).toLocaleString()}
-          </Typography>
-        </Box>
-        <Box
-          sx={{
-            display: "flex",
-            flexFlow: "column-reverse",
-          }}
-        >
-          {messages.map((message) => (
-            <CompactMessageView
-              message={message}
-              groupKey={groupKey}
-              key={message.id}
-            />
-          ))}
-        </Box>
-      </Box>
-    </Box>
+    <CompactMessageGroupBase
+      messages={messages}
+      analyses={analyses}
+      threshold={threshold}
+      member={member}
+      MessageComponent={(props) => (
+        <CompactMessageView {...props} groupKey={groupKey} />
+      )}
+    />
   );
 };
 
 const CompactMessageView = ({
   message,
+  analysis,
+  threshold,
   groupKey,
 }: {
   message: MessageData;
   groupKey: string;
+  analysis?: AnalysisData | null;
+  threshold: number;
 }) => {
-  const { guildId, channelId } = useChannelVizGroup(groupKey);
-  const threshold = useAppSelector(selectThreshold(groupKey));
   const { offsetMap } = useAppSelector(
     selectLayoutData(groupKey),
     shallowEqual
@@ -285,47 +248,14 @@ const CompactMessageView = ({
     }
   }, [dispatch, groupKey, message.id, offsetMap]);
 
-  const { analysis } = useAppSelector(
-    selectAnalysis(guildId, channelId, message.id)
-  );
-  const { overallToxicity } = analysis ?? {};
-
-  const toxicityColor = d3.color(d3.interpolateYlOrRd(overallToxicity ?? 0))!;
-  toxicityColor.opacity = overallToxicity ?? 0;
-
-  const hasEmbed = message.embeds.length;
-  const hasAttachment = Object.values(message.attachments).length;
-
   return (
     <>
-      <Box
-        sx={{
-          wordBreak: "break-word",
-          fontSize: 14,
-          pl: 0.5,
-          pr: 1,
-        }}
-        style={{
-          backgroundColor: toxicityColor.toString(),
-          opacity:
-            typeof overallToxicity === "number" && overallToxicity < threshold
-              ? 0.4
-              : 1,
-        }}
+      <CompactMessageViewBase
+        message={message}
+        analysis={analysis}
+        threshold={threshold}
         ref={ref}
-      >
-        {hasEmbed || hasAttachment ? (
-          <>
-            <em style={{ opacity: 0.6, fontSize: 10 }}>
-              This message contains {hasEmbed ? "embeds" : ""}
-              {hasEmbed && hasAttachment ? " and " : ""}
-              {hasAttachment ? "attachments" : ""}
-            </em>
-            <br />
-          </>
-        ) : null}
-        {message.content}
-      </Box>
+      />
       {/* <Box
         sx={{
           width: 100,

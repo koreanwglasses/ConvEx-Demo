@@ -9,6 +9,11 @@ import {
   setThreshold,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useD3VizComponent } from "./d3-analysis-viz";
+import ReactDOM from "react-dom";
+import { CompactMessageGroupBase } from "../../components/ui/compact-chat-view-base";
+import { selectMember } from "../../data/members-slice";
+import { store } from "../../store";
+import { Card } from "@mui/material";
 
 export const AnalysisBars = ({
   hidden,
@@ -22,27 +27,29 @@ export const AnalysisBars = ({
     data: readonly [MessageData, number | undefined]
   ) => void;
 }) => {
-  const rulerActiveRadius = 20;
-  const barHeight = 20;
-  const thresholdLabel = useRef<HTMLElement>(null);
-
   const groupKey = useGroupKey();
   const initialThreshold = useAppSelector(selectThreshold(groupKey));
   const dispatch = useAppDispatch();
+
+  const rulerActiveRadius = 20;
+  const barHeight = 20;
+
+  const overlayContainer = useRef<HTMLDivElement>(null);
+  const thresholdLabel = useRef<HTMLElement>(null);
+  const messagePopover = useRef<HTMLDivElement>(null);
 
   const D3VizComponent = useD3VizComponent(
     (svgRef) => {
       const svg = d3.select(svgRef);
       const gridG = svg.append("g");
 
-      const barsG = svg.append("g");
-      const labelsG = svg.append("g");
-      
       const rulerG = svg.append("g");
       const rulerThumb = rulerG.append("circle");
       const ruler = rulerG.append("path");
-
       const rulerActiveArea = svg.append("rect");
+
+      const barsG = svg.append("g");
+      const labelsG = svg.append("g");
 
       const state = {
         isDragging: false,
@@ -63,6 +70,7 @@ export const AnalysisBars = ({
     },
     ({
       width,
+      clientHeight,
       canvasHeight,
       applyY,
       data,
@@ -177,7 +185,7 @@ export const AnalysisBars = ({
         ])
       );
 
-      // Dynamic Styles 
+      // Dynamic Styles
       const resetStyle = () => {
         ruler.attr("stroke-width", 1.5);
         ruler.attr("stroke", d3.interpolateYlOrRd(state.threshold));
@@ -265,14 +273,66 @@ export const AnalysisBars = ({
       };
       ruler.on("mouseup", mouseup);
       svg.on("mouseup", mouseup);
+
+      /////////////
+      // POPOVER //
+      /////////////
+
+      bars
+        .on("mouseenter", (e: MouseEvent, [message, tox]) => {
+          if (!messagePopover.current) return;
+
+          const { member } = selectMember(
+            message.guildId,
+            message.authorId
+          )(store.getState());
+
+          ReactDOM.render(
+            <CompactMessageGroupBase
+              messages={[message]}
+              analyses={[
+                {
+                  pending: false,
+                  valid: true,
+                  analysis:
+                    typeof tox === "number" ? { overallToxicity: tox } : null,
+                },
+              ]}
+              threshold={0}
+              member={member}
+            />,
+            messagePopover.current
+          );
+
+          const [x] = d3.pointer(e, overlayContainer.current);
+          const left = Math.min(x + 300, width) - 300;
+          const top =
+            2 +
+            (e.currentTarget as SVGRectElement).getBoundingClientRect().bottom -
+            overlayContainer.current!.getBoundingClientRect().top;
+
+          messagePopover.current.setAttribute(
+            "style",
+            `top: ${top}px; left: ${left}px;`
+          );
+          messagePopover.current.classList.add("hover");
+        })
+        .on("mouseleave", (e: MouseEvent) => {
+          if (!messagePopover.current) return;
+
+          messagePopover.current.classList.remove("hover");
+        });
     }
   );
   return (
     <D3VizComponent filterMargin={barHeight} hidden={hidden} width={width}>
-      <Box sx={{ position: "fixed", top: 0, pointerEvents: "none" }}>
+      <Box
+        sx={{ position: "fixed", top: 0, pointerEvents: "none" }}
+        ref={overlayContainer}
+      >
         <Box
           sx={{
-            position: "relative",
+            position: "absolute",
             fontSize: "12px",
             fontWeight: "bold",
             backgroundColor: (theme) => {
@@ -285,6 +345,24 @@ export const AnalysisBars = ({
           }}
           ref={thresholdLabel}
         />
+        <Card
+          variant="outlined"
+          sx={{
+            position: "absolute",
+            width: 300,
+            p: 0.5,
+
+            maxHeight: 0,
+            opacity: 0,
+            transition: "max-height 0.2s, opacity 0.18s step-end",
+            "&.hover": {
+              transition: "max-height 0.2s",
+              maxHeight: 200,
+              opacity: 1,
+            },
+          }}
+          ref={messagePopover}
+        ></Card>
       </Box>
     </D3VizComponent>
   );
