@@ -153,15 +153,20 @@ export const AnalysisBars = ({
 
       const updateLabel = () => {
         if (!thresholdLabel.current) return;
-        thresholdLabel.current.textContent = state.threshold
-          .toFixed(3)
-          .slice(1);
-        thresholdLabel.current.setAttribute(
-          "style",
-          `left: ${
-            width * state.threshold + (state.threshold < 0.9 ? 2.5 : -35)
-          }px; color: ${d3.interpolateYlOrRd(state.threshold)};`
-        );
+
+        if (state.threshold < 0.01) {
+          thresholdLabel.current.setAttribute("style", "opacity: 0");
+        } else {
+          thresholdLabel.current.textContent = state.threshold
+            .toFixed(3)
+            .slice(1);
+          thresholdLabel.current.setAttribute(
+            "style",
+            `left: ${
+              width * state.threshold + (state.threshold < 0.9 ? 2.5 : -35)
+            }px; color: ${d3.interpolateYlOrRd(state.threshold)};`
+          );
+        }
       };
       updateLabel();
 
