@@ -59,8 +59,8 @@ export const ChannelCard = ({
   }, [expanded, loaded]);
 
   const [maximized, setMaximized] = useState(false);
-  const chartWidth = maximized ? 500 : 300;
-  const chartHeight = maximized ? 800 : 500;
+  const chartWidth = maximized ? 400 : 300;
+  const chartHeight = maximized ? 800 : 371;
   useEffect(() => {
     if (chartHeight !== clientHeight) {
       dispatch(setClientHeight({ key: groupKey, height: chartHeight }));
@@ -118,6 +118,9 @@ export const ChannelCard = ({
         flexDirection: "column",
         justifyContent: "flex-start",
         minWidth: 336,
+      }}
+      style={{
+        width: expanded ? undefined : 336,
       }}
     >
       <Box sx={{ display: "flex", alignItems: "stretch" }}>

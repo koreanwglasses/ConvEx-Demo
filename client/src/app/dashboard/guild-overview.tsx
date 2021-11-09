@@ -45,10 +45,10 @@ const GuildOverview = () => {
               display: "flex",
               flexWrap: "wrap",
               gap: 2,
-              // justifyContent: "center",
               flexDirection: "column",
               alignItems: "flex-start",
-              height: 900,
+              alignContent: "flex-start",
+              height: 880,
               width: "98vw",
               overflowX: "scroll"
             }}
