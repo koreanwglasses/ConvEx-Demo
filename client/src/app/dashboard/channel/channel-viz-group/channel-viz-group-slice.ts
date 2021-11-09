@@ -380,12 +380,12 @@ export const stopStreaming =
     dispatch(setProperty({ groupKey, key: "isStreaming", value: false }));
   };
 
-export const transitionLayoutMode =
-  (groupKey: string, mode: LayoutModes, pivot?: MessageData): AppThunk =>
+export const transitionLayout =
+  ({ groupKey, mode, layoutKey, pivot }: { groupKey: string; mode?: LayoutModes; layoutKey?: string, pivot?: MessageData; }): AppThunk =>
   (dispatch, getState) => {
     const messages = selectMessages(groupKey)(getState());
-    const prevY = selectInitialOffsets(groupKey)(getState());
-    const nextY = selectInitialOffsets(groupKey, mode)(getState());
+    const prevY = selectOffsets(groupKey)(getState());
+    const nextY = selectOffsets(groupKey, mode, layoutKey)(getState());
     const { clientHeight, scrollTop } = selectVizScrollerGroup(groupKey)(
       getState()
     );
@@ -449,7 +449,7 @@ export const selectLayoutMode = (key: string) => (state: RootState) => {
   return { mode, isTransitioning, prevMode, transitionOffset, layoutKey };
 };
 
-const selectInitialOffsets =
+const selectOffsets =
   (key: string, mode?: LayoutModes, layoutKey?: string) =>
   (state: RootState) => {
     const layoutMode = selectLayoutMode(key)(state);
@@ -554,36 +554,24 @@ export const useOffsets = (
   );
   const messages = useAppSelector(selectMessages(key), arrayEqual);
 
-  const offsetFuncs: Record<
-    string,
-    (message: MessageData) => number | undefined
-  > = useMemo(() => ({}), []);
-
-  offsetFuncs.map = useCallback(
+  const map = useCallback(
     (message: MessageData) => layoutData.offsetMap[message.id],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layoutData.version, layoutData.layoutKey]
+    [layoutData.offsetMap, layoutData.version]
   );
-  offsetFuncs.compact = useCallback(
+  const compact = useCallback(
     (message: MessageData) => {
-      if (!messages) return;
-      const i = messages.indexOf(message);
-      return layoutData.m! * i + layoutData.b!;
+      const i = messages!.indexOf(message);
+      return layoutData.m * i + layoutData.b!;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layoutData.b, layoutData.m, messages, layoutData.layoutKey]
+    [layoutData.b, layoutData.m, messages]
   );
+
+  const offsetFuncs = useMemo(() => ({ map, compact }), [compact, map]);
 
   return useMemo(
     () => offsetFuncs[mode ?? layoutMode.mode],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      mode,
-      layoutMode.mode,
-      offsetFuncs.map,
-      offsetFuncs.compact,
-      layoutData.layoutKey,
-    ]
+    [offsetFuncs, mode, layoutMode.mode]
   );
 };
 

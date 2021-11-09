@@ -28,7 +28,7 @@ import { AnalysisBars } from "./analysis-bars";
 import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
 import {
   selectLayoutMode,
-  transitionLayoutMode,
+  transitionLayout,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
 
@@ -79,9 +79,9 @@ export const ChannelCard = ({
     setCharts(value);
 
     if (wasChatOpen && !isChatOpen && mode !== "compact")
-      dispatch(transitionLayoutMode(groupKey, "compact", pivot));
+      dispatch(transitionLayout({ groupKey, mode: "compact", pivot }));
     if (!wasChatOpen && isChatOpen && mode !== "map")
-      dispatch(transitionLayoutMode(groupKey, "map", pivot));
+      dispatch(transitionLayout({ groupKey, mode: "map", pivot }));
   };
 
   // Workaround for callback not updating in component
