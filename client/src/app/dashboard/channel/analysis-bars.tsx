@@ -35,12 +35,12 @@ export const AnalysisBars = ({
       const svg = d3.select(svgRef);
       const gridG = svg.append("g");
 
+      const barsG = svg.append("g");
+      const labelsG = svg.append("g");
+      
       const rulerG = svg.append("g");
       const rulerThumb = rulerG.append("circle");
       const ruler = rulerG.append("path");
-
-      const barsG = svg.append("g");
-      const labelsG = svg.append("g");
 
       const rulerActiveArea = svg.append("rect");
 
@@ -54,6 +54,7 @@ export const AnalysisBars = ({
         barsG,
         labelsG,
         gridG,
+        rulerG,
         ruler,
         rulerActiveArea,
         rulerThumb,
@@ -69,13 +70,18 @@ export const AnalysisBars = ({
       barsG,
       labelsG,
       gridG,
+      rulerG,
       ruler,
       rulerActiveArea,
       rulerThumb,
       state,
     }) => {
+      ////////////////
+      // BASE GRAPH //
+      ////////////////
+
       const x = d3.scaleLinear().domain([0, 1]).range([0, width]);
-      const sel0 = barsG
+      const bars = barsG
         .selectAll("rect")
         .data(data)
         .join("rect")
@@ -87,7 +93,7 @@ export const AnalysisBars = ({
         .on("dblclick", (e, data) => onDoubleClickBar?.(e, data));
 
       const labelOutsideCutoff = 0.9;
-      const sel1 = labelsG
+      const labels = labelsG
         .selectAll("text")
         .data(data)
         .join("text")
@@ -112,15 +118,6 @@ export const AnalysisBars = ({
           typeof tox === "number" ? `${tox.toFixed(3).slice(1)}` : "N/A"
         );
 
-      const setOpacity = () => {
-        const opacity = ([, tox]: readonly [MessageData, number | undefined]) =>
-          typeof tox === "number" && tox < state.threshold ? 0.4 : 1;
-
-        sel0.attr("opacity", opacity);
-        sel1.attr("opacity", opacity);
-      };
-      setOpacity();
-
       gridG
         .attr("class", "grid")
         .attr("transform", `translate(0, ${canvasHeight})`)
@@ -132,6 +129,19 @@ export const AnalysisBars = ({
             .tickSize(-canvasHeight)
             .tickFormat(null)
         );
+
+      /////////////////////
+      // DYNAMIC STYLING //
+      /////////////////////
+
+      const setOpacity = () => {
+        const opacity = ([, tox]: readonly [MessageData, number | undefined]) =>
+          typeof tox === "number" && tox < state.threshold ? 0.4 : 1;
+
+        bars.attr("opacity", opacity);
+        labels.attr("opacity", opacity);
+      };
+      setOpacity();
 
       const updateLabel = () => {
         if (!thresholdLabel.current) return;
@@ -151,6 +161,7 @@ export const AnalysisBars = ({
       // RULER / THRESHOLD //
       ///////////////////////
 
+      // Base Styles
       rulerActiveArea
         .attr("y", 0)
         .attr("width", 2 * rulerActiveRadius)
@@ -166,16 +177,17 @@ export const AnalysisBars = ({
         ])
       );
 
-      // states
+      // Dynamic Styles 
       const resetStyle = () => {
-        rulerActiveArea.attr("x", width * state.threshold - rulerActiveRadius);
         ruler.attr("stroke-width", 1.5);
         ruler.attr("stroke", d3.interpolateYlOrRd(state.threshold));
         rulerThumb.attr("fill", d3.interpolateYlOrRd(state.threshold));
         rulerThumb.attr("r", 0);
+        rulerActiveArea.attr("x", width * state.threshold - rulerActiveRadius);
       };
       resetStyle();
 
+      // Higer-Order Event Handlers
       const whileHovering = (e: MouseEvent) => {
         resetStyle();
         const [x, y] = d3.pointer(e, svg.node());
@@ -218,7 +230,7 @@ export const AnalysisBars = ({
         dispatch(setThreshold({ groupKey, threshold: state.threshold }));
       };
 
-      // events
+      // Event Handlers
       rulerActiveArea
         .on("mouseenter", (e: MouseEvent) => {
           state.isHovering = true;

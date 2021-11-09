@@ -67,7 +67,7 @@ export const ChannelCard = ({
       transitionLayouts({
         groupKey,
         layoutKey: newMaximized ? "large" : "default",
-        smooth: false
+        smooth: false,
       })
     );
   };
