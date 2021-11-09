@@ -38,9 +38,7 @@ export const CompactChatView = ({
   // Only rendering default messages and replies for now
   const messagesToRender = useMemo(() => {
     const messagesToRender = messages?.filter(
-      (message) =>
-        (message.type === "DEFAULT" || message.type === "REPLY") &&
-        (offsetBottomMap[message.id] ?? 0) >= -(offset + canvasHeight)
+      (message) => message.type === "DEFAULT" || message.type === "REPLY"
     );
 
     return messagesToRender?.filter((message, i, messages) => {
@@ -48,7 +46,8 @@ export const CompactChatView = ({
       return (
         (next && !(next.id in offsetBottomMap)) ||
         !(message.id in offsetTopMap) ||
-        offsetTopMap[message.id] - 40 < -offset
+        (offsetTopMap[message.id] - 40 < -offset &&
+          (offsetBottomMap[message.id] ?? 0) >= -(offset + canvasHeight))
       );
     });
   }, [canvasHeight, messages, offset, offsetBottomMap, offsetTopMap]);
@@ -242,10 +241,7 @@ const CompactMessageView = ({
 }) => {
   const { guildId, channelId } = useChannelVizGroup(groupKey);
   const threshold = useAppSelector(selectThreshold(groupKey));
-  const { offsetMap } = useAppSelector(
-    selectLayout(groupKey),
-    shallowEqual
-  );
+  const { offsetMap } = useAppSelector(selectLayout(groupKey), shallowEqual);
 
   const ref = useRef<HTMLDivElement>(null);
 
