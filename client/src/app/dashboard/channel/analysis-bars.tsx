@@ -7,7 +7,6 @@ import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import {
   selectThreshold,
   setThreshold,
-  useChannelVizGroup,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useD3VizComponent } from "./d3-analysis-viz";
 

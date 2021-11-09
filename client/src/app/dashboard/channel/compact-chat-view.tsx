@@ -1,7 +1,7 @@
 import { Avatar, Box, CircularProgress, Typography } from "@mui/material";
 import { useEffect, useMemo, useRef } from "react";
 import { MessageData } from "../../../common/api-data-types";
-import { selectAnalysis } from "../../data/analyses-slice";
+import { selectAnalysis, selectBatchAnalysis } from "../../data/analyses-slice";
 import { fetchMember, selectMember } from "../../data/members-slice";
 import { useAppDispatch, useAppSelector, usePreviousValue } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
@@ -18,6 +18,7 @@ import {
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import { shallowEqual } from "react-redux";
+import { arrayEqual } from "../../../utils";
 
 export const CompactChatView = ({
   hidden = false,
@@ -154,6 +155,7 @@ const CompactMessageGroup = ({
     pending,
   } = useAppSelector(selectMember(guildId, memberId));
 
+
   const dispatch = useAppDispatch();
   useEffect(() => {
     if (!isValid && !pending) {
@@ -161,15 +163,27 @@ const CompactMessageGroup = ({
     }
   }, [isValid, pending, dispatch, memberId, guildId]);
 
+  // check toxicity of messages to see if avatar and icon should fade
+  const analyses = useAppSelector(selectBatchAnalysis(messages), arrayEqual)
+  const threshold = useAppSelector(selectThreshold(groupKey));
+  const shouldFade = !analyses.find(({analysis}) => {
+    const tox = analysis?.overallToxicity
+    if(typeof tox !== "number") return true;
+    if(tox >= threshold) return true;
+    return false;
+  })
+  const opacity = shouldFade ? 0.4: 1;
+
   return (
     <Box sx={{ display: "flex" }}>
       <Avatar
         src={member?.displayAvatarURL}
         alt={member?.user.username}
         sx={{ width: 24, height: 24, mr: 1, mt: 0.5 }}
+        style={{opacity}}
       />
       <Box sx={{ display: "flex", flexFlow: "column", flexGrow: 1 }}>
-        <Box sx={{ display: "flex", mb: 0.25 }}>
+        <Box sx={{ display: "flex", mb: 0.25 }} style={{opacity}}>
           <Typography
             variant="subtitle2"
             sx={{ mr: 1, color: "#ffffff" }}
