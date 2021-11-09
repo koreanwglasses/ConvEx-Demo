@@ -308,14 +308,14 @@ export const AnalysisBars = ({
 
         const [x] = d3.pointer(e, overlayContainer.current);
         const left = Math.min(x + 300, width) - 300;
-        const top =
+        const bottom =
           2 +
-          (e.currentTarget as SVGRectElement).getBoundingClientRect().bottom -
-          overlayContainer.current!.getBoundingClientRect().top;
+          overlayContainer.current!.getBoundingClientRect().bottom -
+          (e.currentTarget as SVGRectElement).getBoundingClientRect().top;
 
         messagePopover.current.setAttribute(
           "style",
-          `top: ${top}px; left: ${left}px;`
+          `bottom: ${bottom}px; left: ${left}px;`
         );
         messagePopover.current.classList.add("hover");
       };

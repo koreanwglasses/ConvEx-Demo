@@ -46,8 +46,8 @@ const GuildOverview = () => {
               flexWrap: "wrap",
               gap: 2,
               justifyContent: "center",
-              flexDirection: "column",
-              alignItems: "center",
+              // flexDirection: "column",
+              alignItems: "flex-start",
             }}
           >
             {channels.map((channel) => (
