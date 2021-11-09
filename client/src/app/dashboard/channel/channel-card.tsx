@@ -23,7 +23,10 @@ import { MessageData } from "../../../common/api-data-types";
 import TransitionContainer from "../../components/ui/transition-container";
 import { selectChannelById } from "../../data/channels-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
-import { setClientHeight } from "../../viz-scroller/viz-scroller-slice";
+import {
+  selectVizScrollerGroup,
+  setClientHeight,
+} from "../../viz-scroller/viz-scroller-slice";
 import { AnalysisBars } from "./analysis-bars";
 import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
 import {
@@ -43,6 +46,10 @@ export const ChannelCard = ({
 
   const dispatch = useAppDispatch();
   const channel = useAppSelector(selectChannelById(guildId, channelId));
+  const { clientHeight } = useAppSelector(
+    selectVizScrollerGroup(groupKey),
+    shallowEqual
+  );
   const { mode } = useAppSelector(selectLayoutMode(groupKey), shallowEqual);
 
   const [loaded, setLoaded] = useState(false);
@@ -53,16 +60,18 @@ export const ChannelCard = ({
 
   const [maximized, setMaximized] = useState(false);
   const chartWidth = maximized ? 500 : 300;
-  const chartHeight = maximized ? 600 : 400;
+  const chartHeight = maximized ? 800 : 500;
+  useEffect(() => {
+    if (chartHeight !== clientHeight) {
+      dispatch(setClientHeight({ key: groupKey, height: chartHeight }));
+    }
+  }, [chartHeight, clientHeight, dispatch, groupKey]);
 
   const handleToggleMaximized = () => {
     const newMaximized = !maximized;
     setMaximized(newMaximized);
     if (newMaximized && !expanded) setExpanded(true);
-
-    dispatch(
-      setClientHeight({ key: groupKey, height: newMaximized ? 600 : 400 })
-    );
+ 
     dispatch(
       transitionLayouts({
         groupKey,
@@ -108,7 +117,7 @@ export const ChannelCard = ({
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
-        minWidth: 300,
+        minWidth: 336,
       }}
     >
       <Box sx={{ display: "flex", alignItems: "stretch" }}>
@@ -143,7 +152,7 @@ export const ChannelCard = ({
 
       <Paper
         sx={{
-          height: 600,
+          height: 800,
           transition: "max-height 0.3s",
           overflow: "hidden",
           display: "flex",
