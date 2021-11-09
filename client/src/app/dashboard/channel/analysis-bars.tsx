@@ -114,6 +114,7 @@ export const AnalysisBars = ({
             : "white"
         )
         .style("font-size", "12px")
+        .style("pointer-events", "none")
         .attr("x", ([, tox]) =>
           typeof tox !== "number"
             ? 3
@@ -278,50 +279,55 @@ export const AnalysisBars = ({
       // POPOVER //
       /////////////
 
-      bars
-        .on("mouseenter", (e: MouseEvent, [message, tox]) => {
-          if (!messagePopover.current) return;
+      const mouseenter = (
+        e: MouseEvent,
+        [message, tox]: readonly [MessageData, number | undefined]
+      ) => {
+        if (!messagePopover.current) return;
 
-          const { member } = selectMember(
-            message.guildId,
-            message.authorId
-          )(store.getState());
+        const { member } = selectMember(
+          message.guildId,
+          message.authorId
+        )(store.getState());
 
-          ReactDOM.render(
-            <CompactMessageGroupBase
-              messages={[message]}
-              analyses={[
-                {
-                  pending: false,
-                  valid: true,
-                  analysis:
-                    typeof tox === "number" ? { overallToxicity: tox } : null,
-                },
-              ]}
-              threshold={0}
-              member={member}
-            />,
-            messagePopover.current
-          );
+        ReactDOM.render(
+          <CompactMessageGroupBase
+            messages={[message]}
+            analyses={[
+              {
+                pending: false,
+                valid: true,
+                analysis:
+                  typeof tox === "number" ? { overallToxicity: tox } : null,
+              },
+            ]}
+            threshold={0}
+            member={member}
+          />,
+          messagePopover.current
+        );
 
-          const [x] = d3.pointer(e, overlayContainer.current);
-          const left = Math.min(x + 300, width) - 300;
-          const top =
-            2 +
-            (e.currentTarget as SVGRectElement).getBoundingClientRect().bottom -
-            overlayContainer.current!.getBoundingClientRect().top;
+        const [x] = d3.pointer(e, overlayContainer.current);
+        const left = Math.min(x + 300, width) - 300;
+        const top =
+          2 +
+          (e.currentTarget as SVGRectElement).getBoundingClientRect().bottom -
+          overlayContainer.current!.getBoundingClientRect().top;
 
-          messagePopover.current.setAttribute(
-            "style",
-            `top: ${top}px; left: ${left}px;`
-          );
-          messagePopover.current.classList.add("hover");
-        })
-        .on("mouseleave", (e: MouseEvent) => {
-          if (!messagePopover.current) return;
+        messagePopover.current.setAttribute(
+          "style",
+          `top: ${top}px; left: ${left}px;`
+        );
+        messagePopover.current.classList.add("hover");
+      };
 
-          messagePopover.current.classList.remove("hover");
-        });
+      const mouseleave = () => {
+        if (!messagePopover.current) return;
+        messagePopover.current.classList.remove("hover");
+      };
+
+      bars.on("mouseenter", mouseenter).on("mouseleave", mouseleave);
+      labels.on("mouseenter", mouseenter).on("mouseleave", mouseleave);
     }
   );
   return (
