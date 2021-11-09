@@ -2,6 +2,13 @@ import { Box } from "@mui/system";
 import * as d3 from "d3";
 import { useRef } from "react";
 import { MessageData } from "../../../common/api-data-types";
+import { useAppDispatch, useAppSelector } from "../../hooks";
+import { useGroupKey } from "./channel-viz-group/channel-viz-group";
+import {
+  selectThreshold,
+  setThreshold,
+  useChannelVizGroup,
+} from "./channel-viz-group/channel-viz-group-slice";
 import { useD3VizComponent } from "./d3-analysis-viz";
 
 export const AnalysisBars = ({
@@ -14,6 +21,10 @@ export const AnalysisBars = ({
   const rulerActiveRadius = 20;
   const barHeight = 20;
   const thresholdLabel = useRef<HTMLElement>(null);
+
+  const groupKey = useGroupKey();
+  const initialThreshold = useAppSelector(selectThreshold(groupKey));
+  const dispatch = useAppDispatch();
 
   const D3VizComponent = useD3VizComponent(
     (svgRef) => {
@@ -29,14 +40,17 @@ export const AnalysisBars = ({
 
       const rulerActiveArea = svg.append("rect");
 
-      const state = { isDragging: false, isHovering: false, threshold: 0.0 };
+      const state = {
+        isDragging: false,
+        isHovering: false,
+        threshold: initialThreshold,
+      };
       return {
         svg,
         barsG,
         labelsG,
         gridG,
         ruler,
-        rulerG,
         rulerActiveArea,
         rulerThumb,
         state,
@@ -51,7 +65,6 @@ export const AnalysisBars = ({
       barsG,
       labelsG,
       gridG,
-      rulerG,
       ruler,
       rulerActiveArea,
       rulerThumb,
@@ -197,6 +210,7 @@ export const AnalysisBars = ({
         state.threshold = x / width;
         setOpacity();
         updateLabel();
+        dispatch(setThreshold({ groupKey, threshold: state.threshold }));
       };
 
       // events

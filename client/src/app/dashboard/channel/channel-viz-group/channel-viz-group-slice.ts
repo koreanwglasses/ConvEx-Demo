@@ -35,6 +35,8 @@ interface SubState {
     m: number;
     b: number;
   };
+
+  toxicityThreshold: number;
 }
 
 // Define a type for the slice state
@@ -57,6 +59,8 @@ const sub = (state: ChannelVizGroupState, groupKey: string, write = true) => {
       m: -21,
       b: -10,
     },
+
+    toxicityThreshold: 0,
   } as const;
   return state[groupKey] ?? (write ? (state[groupKey] = defaults) : defaults);
 };
@@ -142,6 +146,15 @@ export const ChannelVizGroups = createSlice({
       if (typeof transitionOffset === "number")
         layout.transitionOffset = transitionOffset;
     },
+    setThreshold(
+      state,
+      action: {
+        payload: { groupKey: string; threshold: number };
+      }
+    ) {
+      const { groupKey, threshold } = action.payload;
+      sub(state, groupKey).toxicityThreshold = threshold;
+    },
   },
 });
 
@@ -152,6 +165,7 @@ const {
   clearInitialOffsets,
   setLayoutMode,
   setTransitioning,
+  setThreshold,
 } = ChannelVizGroups.actions;
 
 export {
@@ -159,6 +173,7 @@ export {
   clearInitialOffsets,
   setLayoutMode,
   setTransitioning,
+  setThreshold,
 };
 
 const registerGroup =
@@ -405,6 +420,9 @@ export const selectMessages = (key: string) => (state: RootState) => {
 
 export const useMessages = (key: string) =>
   useAppSelector(selectMessages(key), arrayEqual);
+
+export const selectThreshold = (key: string) => (state: RootState) =>
+  sub(state.channelVizGroups, key, false).toxicityThreshold;
 
 export const selectChannelVizGroup =
   (groupKey: string, guildId?: string, channelId?: string) =>

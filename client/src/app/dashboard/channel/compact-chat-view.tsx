@@ -14,8 +14,10 @@ import {
   useChannelVizGroup,
   selectLayout,
   clearInitialOffsets,
+  selectThreshold,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
+import { shallowEqual } from "react-redux";
 
 export const CompactChatView = ({
   hidden = false,
@@ -214,7 +216,8 @@ const CompactMessageView = ({
   groupKey: string;
 }) => {
   const { guildId, channelId } = useChannelVizGroup(groupKey);
-  const { offsetMap } = useAppSelector(selectLayout(groupKey));
+  const threshold = useAppSelector(selectThreshold(groupKey));
+  const { offsetMap } = useAppSelector(selectLayout(groupKey), shallowEqual);
 
   const ref = useRef<HTMLDivElement>(null);
 
@@ -237,10 +240,10 @@ const CompactMessageView = ({
   const { analysis } = useAppSelector(
     selectAnalysis(guildId, channelId, message.id)
   );
-  const { overallToxicity = 0 } = analysis ?? {};
+  const { overallToxicity } = analysis ?? {};
 
-  const toxicityColor = d3.color(d3.interpolateYlOrRd(overallToxicity))!;
-  toxicityColor.opacity = overallToxicity;
+  const toxicityColor = d3.color(d3.interpolateYlOrRd(overallToxicity ?? 0))!;
+  toxicityColor.opacity = overallToxicity ?? 0;
 
   const hasEmbed = message.embeds.length;
   const hasAttachment = Object.values(message.attachments).length;
@@ -255,6 +258,10 @@ const CompactMessageView = ({
       }}
       style={{
         backgroundColor: toxicityColor.toString(),
+        opacity:
+          typeof overallToxicity === "number" && overallToxicity < threshold
+            ? 0.4
+            : 1,
       }}
       ref={ref}
     >
