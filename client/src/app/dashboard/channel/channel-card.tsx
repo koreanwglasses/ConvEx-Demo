@@ -17,7 +17,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Box } from "@mui/system";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import TransitionContainer from "../../components/ui/transition-container";
 import { selectChannelById } from "../../data/channels-slice";
 import { useAppDispatch, useAppSelector } from "../../hooks";
@@ -72,6 +72,12 @@ export const ChannelCard = ({
     if (!wasChatOpen && isChatOpen)
       dispatch(transitionLayoutMode(groupKey, "map"));
   };
+
+  // Workaround for callback not updating in component
+  const chartsRef = useRef(charts);
+  useEffect(() => {
+    chartsRef.current = charts;
+  }, [charts]);
 
   return (
     <Card
@@ -162,7 +168,15 @@ export const ChannelCard = ({
                 delay={500}
               >
                 {(hidden) => (
-                  <AnalysisBars width={chartWidth} hidden={hidden} />
+                  <AnalysisBars
+                    width={chartWidth}
+                    hidden={hidden}
+                    onDoubleClickBar={() => {
+                      const charts = chartsRef.current;
+                      if (!charts.includes("CompactChatView"))
+                        setCharts([...charts, "CompactChatView"]);
+                    }}
+                  />
                 )}
               </TransitionContainer>
             </ChannelVizGroup>

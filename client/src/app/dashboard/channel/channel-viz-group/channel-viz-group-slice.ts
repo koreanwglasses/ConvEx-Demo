@@ -341,11 +341,17 @@ export const transitionLayoutMode =
       );
 
     const transitionOffset =
-      pivot_ && nextY && prevY && nextY(pivot_)! - prevY(pivot_)!;
+      pivot_ &&
+      typeof nextY(pivot_) === "number" &&
+      typeof prevY(pivot_) === "number" &&
+      nextY(pivot_)! - prevY(pivot_)!;
 
-    if (transitionOffset) {
-      dispatch(adjustScrollTop(groupKey, transitionOffset));
+    if (typeof transitionOffset !== "number") {
+      console.warn("Required positions for transition not yet computed");
+      return;
     }
+
+    dispatch(adjustScrollTop(groupKey, transitionOffset));
     dispatch(
       setTransitioning({
         groupKey,

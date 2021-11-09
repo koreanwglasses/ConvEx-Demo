@@ -31,7 +31,7 @@ export const CompactChatView = ({
   const { reachedBeginning } = useChannelVizGroup(groupKey);
   const messages = useMessages(groupKey);
   const dispatch = useAppDispatch();
-  const { offsetBottomMap, offsetTopMap } = useAppSelector(
+  const { offsetMap, offsetBottomMap, offsetTopMap } = useAppSelector(
     selectLayout(groupKey)
   );
 
@@ -44,13 +44,22 @@ export const CompactChatView = ({
     return messagesToRender?.filter((message, i, messages) => {
       const next = i + 1 < messages.length && messages[i + 1];
       return (
-        (next && !(next.id in offsetBottomMap)) ||
-        !(message.id in offsetTopMap) ||
-        (offsetTopMap[message.id] - 40 < -offset &&
+        (next && !(next.id in offsetMap)) ||
+        !(message.id in offsetMap) ||
+        (!hidden &&
+          offsetTopMap[message.id] - 40 < -offset &&
           (offsetBottomMap[message.id] ?? 0) >= -(offset + canvasHeight))
       );
     });
-  }, [canvasHeight, messages, offset, offsetBottomMap, offsetTopMap]);
+  }, [
+    canvasHeight,
+    messages,
+    offset,
+    offsetBottomMap,
+    offsetMap,
+    offsetTopMap,
+    hidden,
+  ]);
   const first = messagesToRender?.length && messagesToRender[0];
   const last =
     messagesToRender?.length && messagesToRender[messagesToRender.length - 1];
@@ -90,8 +99,7 @@ export const CompactChatView = ({
   );
 
   const baseline =
-    -((messagesToRender?.[0] && offsetBottomMap[messagesToRender[0].id]) ?? 0) -
-    16;
+    (messagesToRender?.[0] && offsetBottomMap[messagesToRender[0].id]) ?? 0;
 
   return (
     <VizScroller
@@ -110,11 +118,10 @@ export const CompactChatView = ({
           display: "flex",
           flexFlow: "column-reverse",
           gap: 1,
-          pb: 1,
           pl: 1,
         }}
       >
-        <Box style={{ height: baseline }} />
+        <div style={{ height: -baseline - 8 }} />
         {messageGroups?.map((group) => (
           <CompactMessageGroup
             messages={group}
@@ -241,12 +248,25 @@ const CompactMessageView = ({
 }) => {
   const { guildId, channelId } = useChannelVizGroup(groupKey);
   const threshold = useAppSelector(selectThreshold(groupKey));
-  const { offsetMap } = useAppSelector(selectLayout(groupKey), shallowEqual);
+  const { offsetMap, offsetBottomMap } = useAppSelector(
+    selectLayout(groupKey),
+    shallowEqual
+  );
 
   const ref = useRef<HTMLDivElement>(null);
 
   const dispatch = useAppDispatch();
   useEffect(() => {
+    // if (ref.current && message.id in offsetMap) {
+    //   const ex =
+    //     offsetBottomMap[message.id]
+    //     const ac =
+    //     ref.current.offsetTop +
+    //       ref.current.clientHeight -
+    //       (ref.current.offsetParent?.clientHeight ?? 0)
+    //       if(Math.abs(ex-ac) > 1)
+    //   console.log("Discrepancy:", ex, ac, ex-ac, message);
+    // }
     if (ref.current && !(message.id in offsetMap)) {
       dispatch(
         setInitialOffset({
@@ -266,7 +286,7 @@ const CompactMessageView = ({
         })
       );
     }
-  }, [dispatch, message, groupKey, offsetMap]);
+  }, [dispatch, groupKey, message.id, offsetMap]);
 
   const { analysis } = useAppSelector(
     selectAnalysis(guildId, channelId, message.id)
@@ -280,33 +300,45 @@ const CompactMessageView = ({
   const hasAttachment = Object.values(message.attachments).length;
 
   return (
-    <Box
-      sx={{
-        wordBreak: "break-word",
-        fontSize: 14,
-        pl: 0.5,
-        pr: 1,
-      }}
-      style={{
-        backgroundColor: toxicityColor.toString(),
-        opacity:
-          typeof overallToxicity === "number" && overallToxicity < threshold
-            ? 0.4
-            : 1,
-      }}
-      ref={ref}
-    >
-      {hasEmbed || hasAttachment ? (
-        <>
-          <em style={{ opacity: 0.6, fontSize: 10 }}>
-            This message contains {hasEmbed ? "embeds" : ""}
-            {hasEmbed && hasAttachment ? " and " : ""}
-            {hasAttachment ? "attachments" : ""}
-          </em>
-          <br />
-        </>
-      ) : null}
-      {message.content}
-    </Box>
+    <>
+      <Box
+        sx={{
+          wordBreak: "break-word",
+          fontSize: 14,
+          pl: 0.5,
+          pr: 1,
+        }}
+        style={{
+          backgroundColor: toxicityColor.toString(),
+          opacity:
+            typeof overallToxicity === "number" && overallToxicity < threshold
+              ? 0.4
+              : 1,
+        }}
+        ref={ref}
+      >
+        {hasEmbed || hasAttachment ? (
+          <>
+            <em style={{ opacity: 0.6, fontSize: 10 }}>
+              This message contains {hasEmbed ? "embeds" : ""}
+              {hasEmbed && hasAttachment ? " and " : ""}
+              {hasAttachment ? "attachments" : ""}
+            </em>
+            <br />
+          </>
+        ) : null}
+        {message.content}
+      </Box>
+
+      <Box
+        sx={{
+          width: 100,
+          height: "1px",
+          backgroundColor: "red",
+          position: "absolute",
+        }}
+        style={{ bottom: -offsetBottomMap[message.id] }}
+      />
+    </>
   );
 };

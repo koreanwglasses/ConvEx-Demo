@@ -3,19 +3,27 @@ import * as d3 from "d3";
 import { useRef } from "react";
 import { MessageData } from "../../../common/api-data-types";
 import { useAppDispatch, useAppSelector } from "../../hooks";
+import { store } from "../../store";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import {
+  selectLayoutMode,
   selectThreshold,
   setThreshold,
+  transitionLayoutMode,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useD3VizComponent } from "./d3-analysis-viz";
 
 export const AnalysisBars = ({
   hidden,
   width,
+  onDoubleClickBar,
 }: {
   hidden?: boolean;
   width?: number;
+  onDoubleClickBar?: (
+    event: MouseEvent,
+    data: readonly [MessageData, number | undefined]
+  ) => void;
 }) => {
   const rulerActiveRadius = 20;
   const barHeight = 20;
@@ -78,7 +86,14 @@ export const AnalysisBars = ({
         .attr("width", ([, tox]) => x(tox ?? 0) - x(0))
         .attr("height", barHeight)
         .attr("fill", ([, tox]) => (tox ? d3.interpolateYlOrRd(tox) : "white"))
-        .call(applyY(() => -barHeight / 2));
+        .call(applyY(() => -barHeight / 2))
+        .on("dblclick", (e, data) => {
+          const [message] = data;
+          const { mode } = selectLayoutMode(groupKey)(store.getState());
+          if (mode !== "map")
+            dispatch(transitionLayoutMode(groupKey, "map", message));
+          onDoubleClickBar?.(e, data);
+        });
 
       const labelOutsideCutoff = 0.9;
       const sel1 = labelsG
