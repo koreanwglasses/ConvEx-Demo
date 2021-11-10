@@ -364,9 +364,9 @@ export const AnalysisBars = ({
 
             maxHeight: 0,
             opacity: 0,
-            transition: "max-height 0.2s 0.1s, opacity 0.18s step-end 0.1s",
+            transition: "max-height 0.2s step-end, opacity 0.2s step-end",
             "&.hover": {
-              transition: "max-height 0.2s, opacity 0.05s",
+            transition: "none",
               maxHeight: 200,
               opacity: 1,
             },

@@ -404,7 +404,8 @@ export const transitionLayouts =
 
     const transitionOffset = pivot_ && nextY(pivot_) - prevY(pivot_);
     if (typeof transitionOffset !== "number" || isNaN(transitionOffset)) {
-      console.warn("Could not determine transitionOffset");
+      console.warn("Could not determine transitionOffset. Scrolling to bottom");
+      dispatch(adjustScrollTop(groupKey, -scrollTop));
     } else {
       dispatch(adjustScrollTop(groupKey, transitionOffset));
     }

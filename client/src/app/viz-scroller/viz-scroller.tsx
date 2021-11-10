@@ -38,7 +38,7 @@ export const VizGroupContainer = React.forwardRef<HTMLDivElement, Props>(
     const ref_ = useRef<HTMLDivElement>(null);
     useEffect(() => {
       if (ref_.current && dScrollTop) {
-        ref_.current.scrollTop += dScrollTop;
+        ref_.current.scrollTop += dScrollTop;        
         dispatch(adjustScrollTop_({ key: groupKey, reset: true }));
       }
     }, [dScrollTop, dispatch, groupKey]);

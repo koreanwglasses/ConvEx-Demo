@@ -47,7 +47,6 @@ const GuildOverview = () => {
         sx={{
           height: "calc(100vh - 66px)",
           width: "100vw",
-          minWidth: 1000,
           display: "flex",
         }}
       >
@@ -60,6 +59,7 @@ const GuildOverview = () => {
                 flexDirection: "column",
                 gap: 1,
                 p: 1,
+                flexShrink: 0
               }}
             >
               {typeof height === "number" &&

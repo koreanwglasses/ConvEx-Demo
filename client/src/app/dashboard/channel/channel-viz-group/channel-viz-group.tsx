@@ -60,9 +60,9 @@ export const ChannelVizGroup = ({
   const onScroll = useCallback(() => {
     if (dScrollTop || !ref.current || !messages?.length) return;
 
-    let minOffset: number;
+    let minOffset=0;
     let i = messages.length - 1;
-    while (typeof (minOffset = offsets(messages[i])) !== "number") i--;
+    while (i >= 0 && typeof (minOffset = offsets(messages[i])) !== "number") i--;
 
     const hasScrolledToTop = ref.current.scrollTop - minOffset < clientHeight;
     if (hasScrolledToTop && !pending && !reachedBeginning) {
