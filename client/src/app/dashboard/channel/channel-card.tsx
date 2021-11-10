@@ -31,24 +31,32 @@ import { AnalysisBars } from "./analysis-bars";
 import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
 import {
   selectLayoutMode,
+  setLayoutKey,
   transitionLayouts,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
 
+let id = 0;
+const useUID = () => {
+  return useRef(id++).current;
+};
+
 export const ChannelCard = ({
   channelId,
   guildId,
-  smallHeight,
-  largeHeight,
-  variant = "full",
+  halfHeight,
+  fullHeight,
+  miniHeight = halfHeight * 0.75,
+  initialDisplayMode = "half",
 }: {
   channelId: string;
   guildId: string;
-  smallHeight: number;
-  largeHeight: number;
-  variant?: "palette" | "full";
+  miniHeight?: number;
+  halfHeight: number;
+  fullHeight: number;
+  initialDisplayMode?: "mini" | "half" | "full";
 }) => {
-  const groupKey = `${channelId}/${variant}`;
+  const groupKey = `${channelId}/${useUID()}`;
 
   const dispatch = useAppDispatch();
   const channel = useAppSelector(selectChannelById(guildId, channelId));
@@ -56,7 +64,10 @@ export const ChannelCard = ({
     selectVizScrollerGroup(groupKey),
     shallowEqual
   );
-  const { mode } = useAppSelector(selectLayoutMode(groupKey), shallowEqual);
+  const { mode: layoutMode } = useAppSelector(
+    selectLayoutMode(groupKey),
+    shallowEqual
+  );
 
   const [loaded, setLoaded] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -64,9 +75,11 @@ export const ChannelCard = ({
     if (expanded && !loaded) setLoaded(true);
   }, [expanded, loaded]);
 
-  const [maximized, setMaximized] = useState(false);
-  const chartWidth = maximized ? 400 : 300;
-  const chartHeight = maximized ? largeHeight : smallHeight;
+  const [displayMode, setDisplayMode] = useState(initialDisplayMode);
+  const chartWidth = { mini: 200, half: 300, full: 400 }[displayMode];
+  const chartHeight = { mini: miniHeight, half: halfHeight, full: fullHeight }[
+    displayMode
+  ];
   useEffect(() => {
     if (chartHeight !== clientHeight) {
       dispatch(setClientHeight({ key: groupKey, height: chartHeight }));
@@ -74,14 +87,14 @@ export const ChannelCard = ({
   }, [chartHeight, clientHeight, dispatch, groupKey]);
 
   const handleToggleMaximized = () => {
-    const newMaximized = !maximized;
-    setMaximized(newMaximized);
-    if (newMaximized && !expanded) setExpanded(true);
+    const newDisplayMode = displayMode === "full" ? "half" : "full";
+    setDisplayMode(newDisplayMode);
+    if (!expanded) setExpanded(true);
 
     dispatch(
       transitionLayouts({
         groupKey,
-        layoutKey: newMaximized ? "large" : "default",
+        layoutKey: displayMode,
         smooth: false,
       })
     );
@@ -95,15 +108,15 @@ export const ChannelCard = ({
     value: ChartType[],
     pivot?: MessageData
   ) => {
-    const newCharts = variant === "full" ? value : value.slice(-1);
+    const newCharts = displayMode === "full" ? value : value.slice(-1);
 
     const wasChatOpen = charts.includes("CompactChatView");
     const isChatOpen = newCharts.includes("CompactChatView");
     setCharts(newCharts);
 
-    if (wasChatOpen && !isChatOpen && mode !== "compact")
+    if (wasChatOpen && !isChatOpen && layoutMode !== "compact")
       dispatch(transitionLayouts({ groupKey, mode: "compact", pivot }));
-    if (!wasChatOpen && isChatOpen && mode !== "map")
+    if (!wasChatOpen && isChatOpen && layoutMode !== "map")
       dispatch(transitionLayouts({ groupKey, mode: "map", pivot }));
   };
 
@@ -126,11 +139,9 @@ export const ChannelCard = ({
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",
-        minWidth: 336,
-        overflowX: variant === "palette" ? "hidden" : undefined,
-      }}
-      style={{
-        width: !expanded || variant === "palette" ? 336 : undefined,
+        minWidth: chartWidth + 36,
+        overflowX: displayMode === "mini" ? "hidden" : undefined,
+        width: displayMode === "mini" ? chartWidth + 36 : undefined,
       }}
     >
       <Box sx={{ display: "flex", alignItems: "stretch" }}>
@@ -148,19 +159,23 @@ export const ChannelCard = ({
             noWrap
             variant="h6"
             gutterBottom
-            sx={{ m: 1, fontSize: 16, width: maximized ? 350 : 250 }}
+            sx={{
+              m: 1,
+              fontSize: 16,
+              width: chartWidth - 50,
+            }}
           >
             #{channel && channel.name}
           </Typography>
           {expanded ? <ExpandLess /> : <ExpandMore />}
         </CardActionArea>
-        {variant === "full" && (
+        {(displayMode === "full" || displayMode === "half") && (
           <Box>
             <ButtonBase
               sx={{ width: 36, height: 1.0 }}
               onClick={handleToggleMaximized}
             >
-              {maximized ? (
+              {displayMode === "full" ? (
                 <CloseFullscreen fontSize="small" />
               ) : (
                 <OpenInFull fontSize="small" />
@@ -172,7 +187,7 @@ export const ChannelCard = ({
 
       <Paper
         sx={{
-          height: largeHeight,
+          height: fullHeight,
           transition: "max-height 0.3s",
           overflow: "hidden",
           display: "flex",
@@ -210,6 +225,7 @@ export const ChannelCard = ({
               guildId={guildId}
               channelId={channelId}
               groupKey={groupKey}
+              initialLayoutKey={initialDisplayMode}
             >
               <CompactChatView
                 width={chartWidth}

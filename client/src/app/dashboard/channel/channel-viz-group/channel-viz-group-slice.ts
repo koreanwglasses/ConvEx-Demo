@@ -246,10 +246,16 @@ export { setOffsets, clearOffsets, setLayoutMode, setLayoutKey, setThreshold };
 /////////////
 
 const registerGroup =
-  (groupKey: string, guildId: string, channelId: string): AppThunk =>
+  (
+    groupKey: string,
+    guildId: string,
+    channelId: string,
+    initialLayoutKey = "default"
+  ): AppThunk =>
   (dispatch) => {
     dispatch(setProperty({ groupKey, key: "guildId", value: guildId }));
     dispatch(setProperty({ groupKey, key: "channelId", value: channelId }));
+    dispatch(setLayoutKey({ groupKey, layoutKey: initialLayoutKey }));
   };
 
 export const fetchOlderMessages =
@@ -585,7 +591,8 @@ export const useMessages = (key: string) =>
 export const useChannelVizGroup = (
   groupKey: string,
   guildId?: string,
-  channelId?: string
+  channelId?: string,
+  initialLayoutKey?: string
 ) => {
   const group = useAppSelector(
     selectChannelVizGroup(groupKey, guildId, channelId),
@@ -593,7 +600,7 @@ export const useChannelVizGroup = (
   );
   const dispatch = useAppDispatch();
   if (!group.isRegistered && guildId && channelId)
-    dispatch(registerGroup(groupKey, guildId, channelId));
+    dispatch(registerGroup(groupKey, guildId, channelId, initialLayoutKey));
 
   return group;
 };

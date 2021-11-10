@@ -312,7 +312,7 @@ export const AnalysisBars = ({
         );
 
         const [x] = d3.pointer(e, overlayContainer.current);
-        const left = Math.min(x + 300, width) - 300;
+        const left = Math.max(0, Math.min(x + 300, width) - 300);
         const bottom =
           2 +
           overlayContainer.current!.getBoundingClientRect().bottom -
@@ -360,6 +360,7 @@ export const AnalysisBars = ({
           sx={{
             position: "absolute",
             width: 300,
+            maxWidth: width,
             p: 0.5,
 
             maxHeight: 0,

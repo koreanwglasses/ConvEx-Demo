@@ -68,9 +68,9 @@ const GuildOverview = () => {
                     key={channel.id}
                     channelId={channel.id}
                     guildId={guildId}
-                    smallHeight={height / 2 - 66}
-                    largeHeight={height - 74}
-                    variant="palette"
+                    halfHeight={height / 2 - 66}
+                    fullHeight={height - 74}
+                    initialDisplayMode="mini"
                   />
                 ))}
             </Box>
@@ -94,8 +94,8 @@ const GuildOverview = () => {
                     key={channel.id}
                     channelId={channel.id}
                     guildId={guildId}
-                    smallHeight={height / 2 - 62}
-                    largeHeight={height - 73}
+                    halfHeight={height / 2 - 62}
+                    fullHeight={height - 73}
                   />
                 ))}
             </Box>

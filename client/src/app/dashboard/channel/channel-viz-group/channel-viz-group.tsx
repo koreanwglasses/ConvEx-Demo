@@ -32,16 +32,18 @@ export const ChannelVizGroup = ({
   guildId,
   children,
   groupKey,
+  initialLayoutKey,
   hidden = false,
 }: React.PropsWithChildren<{
   channelId: string;
   guildId: string;
   groupKey: string;
+  initialLayoutKey?: string;
   hidden?: boolean;
 }>) => {
   // Get state from slice
   const { pending, reachedBeginning, isStreaming, isUpToDate } =
-    useChannelVizGroup(groupKey, guildId, channelId);
+    useChannelVizGroup(groupKey, guildId, channelId, initialLayoutKey);
 
   const messages = useMessages(groupKey);
   const offsets = useOffsets(groupKey);

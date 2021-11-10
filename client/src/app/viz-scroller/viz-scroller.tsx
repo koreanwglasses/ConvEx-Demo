@@ -240,7 +240,7 @@ const CustomScrollbar = ({
           height: thumbHeight,
           width: 9,
           borderRadius: 5,
-          bgcolor: "rgba(0,0,0,0.5)",
+          bgcolor: "rgba(0,0,0,0.25)",
           bottom: 3,
           transition: "bottom 0.05s",
         }}
