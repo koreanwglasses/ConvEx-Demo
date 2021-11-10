@@ -135,13 +135,22 @@ const CustomScrollbar = ({
 }) => {
   const { maxScrollHeight = 400, clientHeight } = useVizScrollerGroup(groupKey);
 
-  const [scrollTop, setScrollTop] = useState(0);
+  const thumb = useRef<HTMLDivElement>(null);
+
   const [isScrolling, setIsScrolling] = useState(false);
   useEffect(() => {
     if (container) {
       let timeout: NodeJS.Timeout;
       const handleScroll = () => {
-        setScrollTop(container.scrollTop);
+        thumb.current?.setAttribute(
+          "style",
+          `bottom:${
+            (-container.scrollTop / (maxScrollHeight - clientHeight)) *
+              (clientHeight - 56) +
+            3
+          }px`
+        );
+
         setIsScrolling(true);
 
         if (timeout) clearTimeout(timeout);
@@ -158,7 +167,7 @@ const CustomScrollbar = ({
         container.removeEventListener("scroll", handleScroll);
       };
     }
-  }, [container]);
+  }, [clientHeight, container, maxScrollHeight]);
 
   return (
     <Box
@@ -194,13 +203,9 @@ const CustomScrollbar = ({
           borderRadius: 5,
           bgcolor: "rgba(0,0,0,0.5)",
           bottom: 3,
+          transition: "bottom 0.05s"
         }}
-        style={{
-          bottom:
-            (-scrollTop / (maxScrollHeight - clientHeight)) *
-              (clientHeight - 56) +
-            3,
-        }}
+        ref={thumb}
       ></Box>
     </Box>
   );
