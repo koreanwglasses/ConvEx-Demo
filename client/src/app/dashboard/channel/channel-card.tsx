@@ -31,7 +31,6 @@ import { AnalysisBars } from "./analysis-bars";
 import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
 import {
   selectLayoutMode,
-  setLayoutKey,
   transitionLayouts,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
