@@ -30,8 +30,7 @@ const GuildOverview = () => {
 
   useEffect(() => {
     const listener = () => {
-      if(ref.current)
-      setHeight(ref.current.clientHeight);
+      if (ref.current) setHeight(ref.current.clientHeight);
     };
     window.addEventListener("resize", listener);
     return window.removeEventListener("resize", listener);
@@ -58,15 +57,16 @@ const GuildOverview = () => {
           }}
           ref={ref}
         >
-          {typeof height === "number" && channels.map((channel) => (
-            <ChannelCard
-              key={channel.id}
-              channelId={channel.id}
-              guildId={guildId}
-              smallHeight={height/2-66}
-              largeHeight={height-32}
-            />
-          ))}
+          {typeof height === "number" &&
+            channels.map((channel) => (
+              <ChannelCard
+                key={channel.id}
+                channelId={channel.id}
+                guildId={guildId}
+                smallHeight={height / 2 - 66}
+                largeHeight={height - 32}
+              />
+            ))}
         </Box>
       )}
     </Box>

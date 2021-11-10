@@ -40,13 +40,13 @@ export const ChannelCard = ({
   guildId,
   smallHeight,
   largeHeight,
-  variant="full"
+  variant = "full",
 }: {
   channelId: string;
   guildId: string;
   smallHeight: number;
   largeHeight: number;
-  variant?: "palette" | "full"
+  variant?: "palette" | "full";
 }) => {
   const groupKey = channelId;
 
@@ -95,10 +95,10 @@ export const ChannelCard = ({
     value: ChartType[],
     pivot?: MessageData
   ) => {
-    const newCharts = variant === "full" ?  value : value.slice(-1)
+    const newCharts = variant === "full" ? value : value.slice(-1);
 
     const wasChatOpen = charts.includes("CompactChatView");
-    const isChatOpen =newCharts.includes("CompactChatView");
+    const isChatOpen = newCharts.includes("CompactChatView");
     setCharts(newCharts);
 
     if (wasChatOpen && !isChatOpen && mode !== "compact")
@@ -129,7 +129,7 @@ export const ChannelCard = ({
         overflowX: variant === "palette" ? "hidden" : undefined,
       }}
       style={{
-        width: !expanded || variant==="palette" ? 336 : undefined,
+        width: !expanded || variant === "palette" ? 336 : undefined,
       }}
     >
       <Box sx={{ display: "flex", alignItems: "stretch" }}>
@@ -143,23 +143,30 @@ export const ChannelCard = ({
           }}
           onClick={() => setExpanded(!expanded)}
         >
-          <Typography variant="h6" gutterBottom sx={{ m: 1, fontSize: 16 }}>
+          <Typography
+            noWrap
+            variant="h6"
+            gutterBottom
+            sx={{ m: 1, fontSize: 16, width: maximized ? 350 : 250 }}
+          >
             #{channel && channel.name}
           </Typography>
           {expanded ? <ExpandLess /> : <ExpandMore />}
         </CardActionArea>
-        {variant==="full" && <Box>
-          <ButtonBase
-            sx={{ width: 36, height: 1.0 }}
-            onClick={handleToggleMaximized}
-          >
-            {maximized ? (
-              <CloseFullscreen fontSize="small" />
-            ) : (
-              <OpenInFull fontSize="small" />
-            )}
-          </ButtonBase>
-        </Box>}
+        {variant === "full" && (
+          <Box>
+            <ButtonBase
+              sx={{ width: 36, height: 1.0 }}
+              onClick={handleToggleMaximized}
+            >
+              {maximized ? (
+                <CloseFullscreen fontSize="small" />
+              ) : (
+                <OpenInFull fontSize="small" />
+              )}
+            </ButtonBase>
+          </Box>
+        )}
       </Box>
 
       <Paper
