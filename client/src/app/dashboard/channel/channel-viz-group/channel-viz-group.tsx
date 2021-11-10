@@ -7,7 +7,10 @@ import React, {
 } from "react";
 import { useAppDispatch } from "../../../hooks";
 import { VizGroupContainer } from "../../../viz-scroller/viz-scroller";
-import { useVizScrollerGroup } from "../../../viz-scroller/viz-scroller-slice";
+import {
+  setMaxScrollHeight,
+  useVizScrollerGroup,
+} from "../../../viz-scroller/viz-scroller-slice";
 import {
   clearOffsets,
   fetchNewerMessages,
@@ -42,7 +45,8 @@ export const ChannelVizGroup = ({
 
   const messages = useMessages(groupKey);
   const offsets = useOffsets(groupKey);
-  const { clientHeight, dScrollTop } = useVizScrollerGroup(groupKey);
+  const { clientHeight, dScrollTop, maxScrollHeight } =
+    useVizScrollerGroup(groupKey);
 
   const dispatch = useAppDispatch();
 
@@ -56,14 +60,16 @@ export const ChannelVizGroup = ({
     }
   }, [dispatch, groupKey, messages, pending]);
 
-  // Load more messages on scroll
-  const onScroll = useCallback(() => {
-    if (dScrollTop || !ref.current || !messages?.length) return;
-
-    let minOffset = 0;
+  let minOffset = 0;
+  if (messages?.length) {
     let i = messages.length - 1;
     while (i >= 0 && typeof (minOffset = offsets(messages[i])) !== "number")
       i--;
+  }
+
+  // Load more messages on scroll
+  const onScroll = useCallback(() => {
+    if (dScrollTop || !ref.current || !messages?.length) return;
 
     const hasScrolledToTop = ref.current.scrollTop - minOffset < clientHeight;
     if (hasScrolledToTop && !pending && !reachedBeginning) {
@@ -78,16 +84,16 @@ export const ChannelVizGroup = ({
       dispatch(stopStreaming(groupKey));
     }
   }, [
-    clientHeight,
     dScrollTop,
-    dispatch,
-    groupKey,
-    offsets,
-    isStreaming,
-    isUpToDate,
-    messages,
+    messages?.length,
+    minOffset,
+    clientHeight,
     pending,
     reachedBeginning,
+    isStreaming,
+    dispatch,
+    groupKey,
+    isUpToDate,
   ]);
 
   // Clear/recompute offsets when new message is inserted
@@ -97,13 +103,12 @@ export const ChannelVizGroup = ({
   }, [dispatch, groupKey, newestMessage]);
 
   // Stop scrolling when we reach the end
-  // const oldestMessageOffset =
-  //   messages?.length && initialOffsets(messages[messages.length - 1]);
-  // useEffect(() => {
-  //   if (!oldestMessageOffset) return;
-  //   const maxOffset = -oldestMessageOffset + 0.5 * clientHeight;
-  //   dispatch(setMaxScrollHeight({ key: groupKey, offset: maxOffset }));
-  // }, [clientHeight, dispatch, groupKey, oldestMessageOffset]);
+  useEffect(() => {
+    const newMax = -minOffset + 0.5 * clientHeight;
+    if (!maxScrollHeight || newMax > maxScrollHeight) {
+      dispatch(setMaxScrollHeight({ key: groupKey, offset: newMax }));
+    }
+  }, [clientHeight, dispatch, groupKey, maxScrollHeight, minOffset]);
 
   // Stop streaming when hidden
   useEffect(() => {

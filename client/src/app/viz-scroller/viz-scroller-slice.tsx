@@ -14,19 +14,19 @@ interface SubState {
 
 const scrollHeight = (substate: SubState) =>
   Math.min(
-    canvasHeight(substate) + substate.clientHeight + substate.offset,
-    substate.maxScrollHeight ?? Number.POSITIVE_INFINITY
+    canvasHeight(substate) + substate.clientHeight + substate.offset
+    // substate.maxScrollHeight ?? Number.POSITIVE_INFINITY
   );
 
 const canvasHeight = (substate: SubState) => 3 * substate.clientHeight;
 
 const canvasTop = (substate: SubState) =>
-  substate.maxScrollHeight
+  /* substate.maxScrollHeight
     ? Math.min(
         substate.maxScrollHeight - canvasHeight(substate) - substate.offset,
         substate.clientHeight
       )
-    : substate.clientHeight;
+    : */ substate.clientHeight;
 
 // Define a type for the slice state
 interface VizScrollersState {
@@ -87,12 +87,12 @@ export const VizScrollers = createSlice({
           -scrollTop - canvasHeight(substate) / 2 + substate.clientHeight / 2,
           0
         );
-        if (substate.maxScrollHeight) {
-          substate.offset = Math.min(
-            substate.offset,
-            substate.maxScrollHeight - canvasHeight(substate)
-          );
-        }
+        // if (substate.maxScrollHeight) {
+        //   substate.offset = Math.min(
+        //     substate.offset,
+        //     substate.maxScrollHeight - canvasHeight(substate)
+        //   );
+        // }
       }
     },
     adjustScrollTop_(

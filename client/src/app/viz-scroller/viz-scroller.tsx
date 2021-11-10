@@ -1,5 +1,5 @@
 import { Box, SxProps } from "@mui/system";
-import React, { forwardRef, useEffect, useRef } from "react";
+import React, { forwardRef, useEffect, useRef, useState } from "react";
 import { useAppDispatch } from "../hooks";
 import {
   adjustScrollTop_,
@@ -76,6 +76,7 @@ export const VizGroupContainer = React.forwardRef<HTMLDivElement, Props>(
             {children}
           </div>
         </Box>
+        <CustomScrollbar groupKey={groupKey} container={ref_.current} />
       </Box>
     );
   }
@@ -124,3 +125,83 @@ export const VizScroller = forwardRef(
     );
   }
 );
+
+const CustomScrollbar = ({
+  groupKey,
+  container,
+}: {
+  groupKey: string;
+  container: HTMLDivElement | null;
+}) => {
+  const { maxScrollHeight = 400, clientHeight } = useVizScrollerGroup(groupKey);
+
+  const [scrollTop, setScrollTop] = useState(0);
+  const [isScrolling, setIsScrolling] = useState(false);
+  useEffect(() => {
+    if (container) {
+      let timeout: NodeJS.Timeout;
+      const handleScroll = () => {
+        setScrollTop(container.scrollTop);
+        setIsScrolling(true);
+
+        if (timeout) clearTimeout(timeout);
+        const lastScrollTop = container.scrollTop;
+        timeout = setTimeout(() => {
+          if (container.scrollTop === lastScrollTop) {
+            setIsScrolling(false);
+          }
+        }, 500);
+      };
+      container.addEventListener("scroll", handleScroll);
+
+      return () => {
+        container.removeEventListener("scroll", handleScroll);
+      };
+    }
+  }, [container]);
+
+  return (
+    <Box
+      sx={{
+        position: "fixed",
+        right: 2,
+        top: 3,
+        height: "calc(100% - 6px)",
+        width: 9,
+        bgcolor: "rgba(0,0,0,0.1)",
+        opacity: 0,
+        transition: "opacity 0.3s",
+        "&:hover": {
+          opacity: 1,
+          transition: "opacity 0.3s",
+        },
+      }}
+      style={
+        isScrolling
+          ? {
+              opacity: 1,
+              transition: "opacity 0.3s",
+            }
+          : undefined
+      }
+    >
+      <Box
+        sx={{
+          position: "fixed",
+          right: 2,
+          height: 50,
+          width: 9,
+          borderRadius: 5,
+          bgcolor: "rgba(0,0,0,0.5)",
+          bottom: 3,
+        }}
+        style={{
+          bottom:
+            (-scrollTop / (maxScrollHeight - clientHeight)) *
+              (clientHeight - 56) +
+            3,
+        }}
+      ></Box>
+    </Box>
+  );
+};
