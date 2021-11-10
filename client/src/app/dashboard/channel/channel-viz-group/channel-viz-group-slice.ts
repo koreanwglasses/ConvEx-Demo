@@ -310,7 +310,6 @@ export const fetchNewerMessages =
     const i =
       ((newestMessage && slice.messages?.indexOf(newestMessage)) ?? 0) - limit;
 
-    console.log(i, slice.messages);
     if (i >= 0) {
       dispatch(
         setProperty({

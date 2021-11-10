@@ -41,7 +41,7 @@ export const ChannelVizGroup = ({
     useChannelVizGroup(groupKey, guildId, channelId);
 
   const messages = useMessages(groupKey);
-  const initialOffsets = useOffsets(groupKey);
+  const offsets = useOffsets(groupKey);
   const { clientHeight, dScrollTop } = useVizScrollerGroup(groupKey);
 
   const dispatch = useAppDispatch();
@@ -58,18 +58,18 @@ export const ChannelVizGroup = ({
 
   // Load more messages on scroll
   const onScroll = useCallback(() => {
-    if (dScrollTop) return;
+    if (dScrollTop || !ref.current || !messages?.length) return;
 
-    const hasScrolledToTop =
-      initialOffsets &&
-      messages?.length &&
-      ref.current!.scrollTop - initialOffsets(messages[messages.length - 1])! <
-        clientHeight;
+    let minOffset: number;
+    let i = messages.length - 1;
+    while (typeof (minOffset = offsets(messages[i])) !== "number") i--;
+
+    const hasScrolledToTop = ref.current.scrollTop - minOffset < clientHeight;
     if (hasScrolledToTop && !pending && !reachedBeginning) {
       dispatch(fetchOlderMessages(groupKey));
     }
 
-    const hasScrolledToBottom = ref.current!.scrollTop > -clientHeight;
+    const hasScrolledToBottom = ref.current.scrollTop > -clientHeight;
     if (hasScrolledToBottom) {
       if (!isUpToDate) dispatch(fetchNewerMessages(groupKey));
       else if (!isStreaming) dispatch(startStreaming(groupKey));
@@ -81,7 +81,7 @@ export const ChannelVizGroup = ({
     dScrollTop,
     dispatch,
     groupKey,
-    initialOffsets,
+    offsets,
     isStreaming,
     isUpToDate,
     messages,
