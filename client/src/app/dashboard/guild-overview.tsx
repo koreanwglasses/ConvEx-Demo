@@ -1,18 +1,15 @@
-import { Box, Link, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useParams } from "react-router";
-import { selectGuildById, selectGuilds } from "../data/guilds-slice";
+import { selectGuilds } from "../data/guilds-slice";
 import { useAppSelector } from "../hooks";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { RouterLink } from "../components/ui/router-link-component";
 import { selectChannels } from "../data/channels-slice";
 import { ChannelCard } from "./channel/channel-card";
+import { useEffect, useRef, useState } from "react";
 
 const GuildOverview = () => {
   const { guildId } = useParams();
   const { pending: guildPending, lastError: guildLastError } =
     useAppSelector(selectGuilds);
-
-  const guildData = useAppSelector(selectGuildById(guildId!));
 
   const {
     pending: channelsPending,
@@ -22,48 +19,57 @@ const GuildOverview = () => {
 
   const channels = channelsData && Object.values(channelsData);
 
-  return (
-    <>
-      <Box sx={{ mt: 1 }}>
-        <Link href="/dashboard" component={RouterLink}>
-          <ArrowBackIcon fontSize="small" sx={{ mb: -0.5 }} />
-          Back to Guilds
-        </Link>
-      </Box>
-      <Box sx={{ m: 1 }}>
-        {guildData && (
-          <Typography variant="h5" gutterBottom>
-            {guildData.name}
-          </Typography>
-        )}
-        {(guildPending || channelsPending) && "Loading..."}
-        {(guildLastError || channelsLastError) && "Something went wrong"}
+  const [height, setHeight] = useState<number>();
 
-        {channels && guildId && (
-          <Box
-            sx={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 2,
-              flexDirection: "column",
-              alignItems: "flex-start",
-              alignContent: "flex-start",
-              height: 880,
-              width: "98vw",
-              overflowX: "scroll"
-            }}
-          >
-            {channels.map((channel) => (
-              <ChannelCard
-                key={channel.id}
-                channelId={channel.id}
-                guildId={guildId}
-              />
-            ))}
-          </Box>
-        )}
-      </Box>
-    </>
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof height === "undefined" && ref.current)
+      setHeight(ref.current.clientHeight);
+  }, [height, setHeight]);
+
+  useEffect(() => {
+    const listener = () => {
+      if(ref.current)
+      setHeight(ref.current.clientHeight);
+    };
+    window.addEventListener("resize", listener);
+    return window.removeEventListener("resize", listener);
+  }, [setHeight]);
+
+  return (
+    <Box>
+      {(guildPending || channelsPending) && "Loading..."}
+      {(guildLastError || channelsLastError) && "Something went wrong"}
+
+      {channels && guildId && (
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 2,
+            flexDirection: "column",
+            alignItems: "flex-start",
+            alignContent: "flex-start",
+            height: "calc(100vh - 66px)",
+            width: "100vw",
+            overflowX: "scroll",
+            p: 2,
+          }}
+          ref={ref}
+        >
+          {typeof height === "number" && channels.map((channel) => (
+            <ChannelCard
+              key={channel.id}
+              channelId={channel.id}
+              guildId={guildId}
+              smallHeight={height/2-66}
+              largeHeight={height-32}
+            />
+          ))}
+        </Box>
+      )}
+    </Box>
   );
 };
 

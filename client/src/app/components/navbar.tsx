@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link as RouterLink } from "react-router-dom";
+import { useParams, Link as RouterLink, useLocation } from "react-router-dom";
 import { useAppSelector } from "../hooks";
 import { logout, selectCurrentUser } from "../data/current-user-slice";
 import { useDispatch } from "react-redux";
@@ -15,11 +15,11 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import { styled } from "@mui/system";
 import { UserData } from "../../common/api-data-types";
+import { Divider, Typography, Link, Breadcrumbs } from "@mui/material";
+import { selectGuildById } from "../data/guilds-slice";
+import { NavigateNext } from "@mui/icons-material";
 
 const useStyles = makeStyles({
-  toolbarTitleContainer: {
-    flexGrow: 1,
-  },
   toolbarTitle: {
     fontSize: 36,
     color: "white",
@@ -33,17 +33,54 @@ const AppBar = styled(MuiAppBar)(({ theme }) => ({
 
 export const Navbar = () => (
   <AppBar position="static">
-    <Toolbar>
+    <Toolbar sx={{ gap: 2 }}>
       <Title />
+      <DashboardTitle />
+      <Box sx={{ flexGrow: 1 }} />
       <Actions />
     </Toolbar>
   </AppBar>
 );
 
+const DashboardTitle = () => {
+  const path = useLocation().pathname.split("/").slice(1);
+  const { guildId } = useParams();
+  const guildData = useAppSelector(selectGuildById(guildId));
+  return (
+    <>
+      {(path[0] === "dashboard" || guildId) && (
+        <>
+          <Divider orientation="vertical" flexItem />
+          <Breadcrumbs separator={<NavigateNext fontSize="small" />}>
+            <Link
+              underline="hover"
+              color="inherit"
+              component={React.forwardRef((props: any, ref) => (
+                <RouterLink to={"/dashboard"} {...props} ref={ref} />
+              ))}
+            >
+              Your Guilds
+            </Link>
+            {guildId && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Avatar
+                  src={guildData?.iconURL}
+                  sx={{ width: 28, height: 28 }}
+                />
+                <Typography>{guildData?.name}</Typography>
+              </Box>
+            )}
+          </Breadcrumbs>
+        </>
+      )}
+    </>
+  );
+};
+
 const Title = () => {
   const classes = useStyles();
   return (
-    <div className={classes.toolbarTitleContainer}>
+    <div>
       <a className={classes.toolbarTitle} href={"/"}>
         <Box fontWeight={700} component="span">
           CONV
@@ -60,7 +97,7 @@ const Actions = () => {
   const { pending, userData } = useAppSelector(selectCurrentUser);
 
   return (
-    <>
+    <Box>
       <AddToServerButton />
 
       {pending && (
@@ -78,7 +115,7 @@ const Actions = () => {
           <AvatarMenu user={userData} />
         </>
       )}
-    </>
+    </Box>
   );
 };
 

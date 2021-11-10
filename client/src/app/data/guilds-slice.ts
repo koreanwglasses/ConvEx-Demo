@@ -61,7 +61,7 @@ export const fetchGuilds =
 
 export const selectGuilds = (state: RootState) => state.guilds;
 
-export const selectGuildById = (id: string) => (state: RootState) =>
-  state.guilds.guildsData?.[id];
+export const selectGuildById = (id?: string) => (state: RootState) =>
+  typeof id !== "undefined" ? state.guilds.guildsData?.[id] : undefined;
 
 export default Guilds.reducer;

@@ -38,9 +38,15 @@ import { CompactChatView } from "./compact-chat-view";
 export const ChannelCard = ({
   channelId,
   guildId,
+  smallHeight,
+  largeHeight,
+  variant="full"
 }: {
   channelId: string;
   guildId: string;
+  smallHeight: number;
+  largeHeight: number;
+  variant?: "palette" | "full"
 }) => {
   const groupKey = channelId;
 
@@ -60,7 +66,7 @@ export const ChannelCard = ({
 
   const [maximized, setMaximized] = useState(false);
   const chartWidth = maximized ? 400 : 300;
-  const chartHeight = maximized ? 800 : 371;
+  const chartHeight = maximized ? largeHeight : smallHeight;
   useEffect(() => {
     if (chartHeight !== clientHeight) {
       dispatch(setClientHeight({ key: groupKey, height: chartHeight }));
@@ -71,7 +77,7 @@ export const ChannelCard = ({
     const newMaximized = !maximized;
     setMaximized(newMaximized);
     if (newMaximized && !expanded) setExpanded(true);
- 
+
     dispatch(
       transitionLayouts({
         groupKey,
@@ -89,9 +95,11 @@ export const ChannelCard = ({
     value: ChartType[],
     pivot?: MessageData
   ) => {
+    const newCharts = variant === "full" ?  value : value.slice(-1)
+
     const wasChatOpen = charts.includes("CompactChatView");
-    const isChatOpen = value.includes("CompactChatView");
-    setCharts(value);
+    const isChatOpen =newCharts.includes("CompactChatView");
+    setCharts(newCharts);
 
     if (wasChatOpen && !isChatOpen && mode !== "compact")
       dispatch(transitionLayouts({ groupKey, mode: "compact", pivot }));
@@ -118,9 +126,10 @@ export const ChannelCard = ({
         flexDirection: "column",
         justifyContent: "flex-start",
         minWidth: 336,
+        overflowX: variant === "palette" ? "hidden" : undefined,
       }}
       style={{
-        width: expanded ? undefined : 336,
+        width: !expanded || variant==="palette" ? 336 : undefined,
       }}
     >
       <Box sx={{ display: "flex", alignItems: "stretch" }}>
@@ -139,7 +148,7 @@ export const ChannelCard = ({
           </Typography>
           {expanded ? <ExpandLess /> : <ExpandMore />}
         </CardActionArea>
-        <Box>
+        {variant==="full" && <Box>
           <ButtonBase
             sx={{ width: 36, height: 1.0 }}
             onClick={handleToggleMaximized}
@@ -150,12 +159,12 @@ export const ChannelCard = ({
               <OpenInFull fontSize="small" />
             )}
           </ButtonBase>
-        </Box>
+        </Box>}
       </Box>
 
       <Paper
         sx={{
-          height: 800,
+          height: largeHeight,
           transition: "max-height 0.3s",
           overflow: "hidden",
           display: "flex",
