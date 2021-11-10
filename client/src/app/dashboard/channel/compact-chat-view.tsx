@@ -1,5 +1,5 @@
 import { Box, CircularProgress } from "@mui/material";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnalysisData, MessageData } from "../../../common/api-data-types";
 import { selectBatchAnalysis } from "../../data/analyses-slice";
 import { fetchMember, selectMember } from "../../data/members-slice";
@@ -129,9 +129,6 @@ export const CompactChatView = ({
 
   const prevWidth = usePreviousValue(width);
 
-  const baseline =
-    (messagesToRender?.[0] && offsetBottomMap[messagesToRender[0].id]) ?? 0;
-
   return (
     <VizScroller
       groupKey={groupKey}
@@ -152,14 +149,7 @@ export const CompactChatView = ({
           pl: 1,
         }}
       >
-        <div style={{ height: -baseline - 8 }} />
-        {messageGroups?.map((group) => (
-          <CompactMessageGroup
-            messages={group}
-            groupKey={groupKey}
-            key={group[0].id}
-          />
-        ))}
+        <BasedChatRenderer groupKey={groupKey} messageGroups={messageGroups} />
 
         {!reachedBeginning && (
           <Box
@@ -185,6 +175,44 @@ export const CompactChatView = ({
         )}
       </Box>
     </VizScroller>
+  );
+};
+
+const BasedChatRenderer = ({
+  messageGroups,
+  groupKey,
+}: {
+  messageGroups?: MessageData[][];
+  groupKey: string;
+}) => {
+  const { offsetBottomMap } = useAppSelector(
+    selectLayoutData(groupKey),
+    shallowEqual
+  );
+
+  const baseline =
+    (messageGroups?.[0]?.[0] && offsetBottomMap[messageGroups[0][0].id]) ?? -8;
+
+  const baseBoxRef = useRef<HTMLDivElement>(null);
+  const [baseBoxHeight, setBaseBoxHeight] = useState<number>();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (baseBoxRef.current?.clientHeight !== baseBoxHeight)
+      setBaseBoxHeight(baseBoxRef.current?.clientHeight);
+  });
+
+  return (
+    <>
+      <div style={{ height: -baseline - 8 }} ref={baseBoxRef} />
+      {-baseline - 8 === baseBoxHeight &&
+        messageGroups?.map((group) => (
+          <CompactMessageGroup
+            messages={group}
+            groupKey={groupKey}
+            key={group[0].id}
+          />
+        ))}
+    </>
   );
 };
 

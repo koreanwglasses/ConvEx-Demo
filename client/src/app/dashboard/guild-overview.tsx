@@ -59,7 +59,7 @@ const GuildOverview = () => {
                 flexDirection: "column",
                 gap: 1,
                 p: 1,
-                flexShrink: 0
+                flexShrink: 0,
               }}
             >
               {typeof height === "number" &&
