@@ -24,17 +24,18 @@ const GuildOverview = () => {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (typeof height === "undefined" && ref.current)
-      setHeight(ref.current.clientHeight);
-  }, [height, setHeight]);
-
-  useEffect(() => {
     const listener = () => {
       if (ref.current) setHeight(ref.current.clientHeight);
     };
     window.addEventListener("resize", listener);
     return window.removeEventListener("resize", listener);
-  }, [setHeight]);
+  }, []);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (ref.current && ref.current.clientHeight !== height)
+      setHeight(ref.current.clientHeight);
+  });
 
   return (
     <Box>

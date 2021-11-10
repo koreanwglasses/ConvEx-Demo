@@ -271,11 +271,11 @@ socket.on(
   "messages",
   (guildId: string, channelId: string, message: MessageData) => {
     const slice = sub(store.getState().messages, guildId, channelId);
-    slice.listeners.forEach((listener) => listener(message));
     if (slice.isUpToDate) {
       store.dispatch(unshiftMessage({ guildId, channelId, message }));
       (store.dispatch as AppDispatch)(fetchAnalyses([message]));
     }
+    slice.listeners.forEach((listener) => listener(message));
   }
 );
 

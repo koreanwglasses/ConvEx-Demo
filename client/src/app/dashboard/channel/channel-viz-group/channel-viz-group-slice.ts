@@ -152,19 +152,17 @@ export const ChannelVizGroups = createSlice({
       layout.offsetBottomMap[itemKey] = offsetBottom;
       layout.version++;
     },
-    clearOffsets(
-      state,
-      action: { payload: { groupKey: string; layoutKey?: string } }
-    ) {
+    clearOffsets(state, action: { payload: { groupKey: string } }) {
       const { groupKey } = action.payload;
-      const { layouts, layoutKey: layoutKey_ } = sub(state, groupKey);
-      const { layoutKey = layoutKey_ } = action.payload;
+      const { layouts } = sub(state, groupKey);
 
-      const layout = subLayouts(layouts, layoutKey);
-      layout.offsetMap = {};
-      layout.offsetTopMap = {};
-      layout.offsetBottomMap = {};
-      layout.version++;
+      for (const layoutKey in layouts) {
+        const layout = layouts[layoutKey];
+        layout.offsetMap = {};
+        layout.offsetTopMap = {};
+        layout.offsetBottomMap = {};
+        layout.version++;
+      }
     },
     setLayoutKey(
       state,
@@ -312,6 +310,7 @@ export const fetchNewerMessages =
     const i =
       ((newestMessage && slice.messages?.indexOf(newestMessage)) ?? 0) - limit;
 
+    console.log(i, slice.messages);
     if (i >= 0) {
       dispatch(
         setProperty({
@@ -332,6 +331,7 @@ export const fetchNewerMessages =
             value: messages[messages.length - i],
           })
         );
+        dispatch(clearOffsets({ groupKey }));
       }
     }
   };

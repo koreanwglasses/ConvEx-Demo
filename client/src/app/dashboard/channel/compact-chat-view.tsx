@@ -12,6 +12,7 @@ import {
   useChannelVizGroup,
   selectLayoutData,
   selectThreshold,
+  useOffsets,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import { shallowEqual } from "react-redux";
@@ -36,32 +37,62 @@ export const CompactChatView = ({
     selectLayoutData(groupKey),
     shallowEqual
   );
+  const offsets = useOffsets(groupKey);
 
   // Only rendering default messages and replies for now
   const messagesToRender = useMemo(() => {
-    const messagesToRender = messages?.filter(
+    if (!messages) return;
+
+    const messagesToRender = messages.filter(
       (message) => message.type === "DEFAULT" || message.type === "REPLY"
     );
 
-    return messagesToRender?.filter((message, i, messages) => {
-      const next = i + 1 < messages.length && messages[i + 1];
-      return (
-        (next && !(next.id in offsetMap)) ||
-        !(message.id in offsetMap) ||
-        (!hidden &&
-          offsetTopMap[message.id] - 40 < -offset &&
-          (offsetBottomMap[message.id] ?? 0) >= -(offset + canvasHeight))
+    let lastComputed =
+      messagesToRender.findIndex(
+        (message, i) => !(i === 0 || message.id in offsetMap)
+      ) - 1;
+    if (lastComputed === -1) lastComputed = messagesToRender.length - 1;
+
+    if (hidden) {
+      const margin = 100;
+
+      const topOfCanvas = messagesToRender.findIndex(
+        (message) => offsets(message) + margin < -offset - canvasHeight
       );
-    });
+
+      return messagesToRender.slice(lastComputed, topOfCanvas);
+    } else {
+      const margin = 50;
+
+      let bottomOfCanvas = messagesToRender.findIndex(
+        (message) =>
+          message.id in offsetTopMap &&
+          offsetTopMap[message.id] - margin < -offset
+      );
+      if (bottomOfCanvas === -1) bottomOfCanvas = messagesToRender.length - 1;
+
+      let topOfCanvas = messagesToRender.findIndex(
+        (message) =>
+          message.id in offsetBottomMap &&
+          offsetBottomMap[message.id] < -offset - canvasHeight
+      );
+      if (topOfCanvas === -1) topOfCanvas = messagesToRender.length - 1;
+
+      const start = Math.min(lastComputed, bottomOfCanvas);
+      const end = Math.min(topOfCanvas, start + 100);
+      return messagesToRender.slice(start, end);
+    }
   }, [
     canvasHeight,
+    hidden,
     messages,
     offset,
     offsetBottomMap,
     offsetMap,
     offsetTopMap,
-    hidden,
+    offsets,
   ]);
+
   const first = messagesToRender?.length && messagesToRender[0];
   const last =
     messagesToRender?.length && messagesToRender[messagesToRender.length - 1];
@@ -218,14 +249,13 @@ const CompactMessageView = ({
   const dispatch = useAppDispatch();
   useEffect(() => {
     // if (ref.current && message.id in offsetMap) {
-    //   const ex =
-    //     offsetBottomMap[message.id]
-    //     const ac =
+    //   const ex = offsetBottomMap[message.id];
+    //   const ac =
     //     ref.current.offsetTop +
-    //       ref.current.clientHeight -
-    //       (ref.current.offsetParent?.clientHeight ?? 0)
-    //       if(Math.abs(ex-ac) > 1)
-    //   console.log("Discrepancy:", ex, ac, ex-ac, message);
+    //     ref.current.clientHeight -
+    //     (ref.current.offsetParent?.clientHeight ?? 0);
+    //   if (Math.abs(ex - ac) > 1)
+    //     console.log("Discrepancy:", ex, ac, ex - ac, message);
     // }
     if (ref.current && !(message.id in offsetMap)) {
       dispatch(
@@ -246,7 +276,7 @@ const CompactMessageView = ({
         })
       );
     }
-  }, [dispatch, groupKey, message.id, offsetMap]);
+  }, [dispatch, groupKey, message, message.id, offsetMap]);
 
   return (
     <>
