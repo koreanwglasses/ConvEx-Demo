@@ -48,7 +48,7 @@ export const ChannelCard = ({
   largeHeight: number;
   variant?: "palette" | "full";
 }) => {
-  const groupKey = channelId;
+  const groupKey = `${channelId}/${variant}`;
 
   const dispatch = useAppDispatch();
   const channel = useAppSelector(selectChannelById(guildId, channelId));
@@ -122,6 +122,7 @@ export const ChannelCard = ({
   return (
     <Card
       sx={{
+        flexShrink: 0,
         display: "flex",
         flexDirection: "column",
         justifyContent: "flex-start",

@@ -4,7 +4,7 @@ import { selectGuilds } from "../data/guilds-slice";
 import { useAppSelector } from "../hooks";
 import { selectChannels } from "../data/channels-slice";
 import { ChannelCard } from "./channel/channel-card";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const GuildOverview = () => {
   const { guildId } = useParams();
@@ -38,40 +38,88 @@ const GuildOverview = () => {
   });
 
   return (
-    <Box>
-      {(guildPending || channelsPending) && "Loading..."}
-      {(guildLastError || channelsLastError) && "Something went wrong"}
-
-      {channels && guildId && (
-        <Box
-          sx={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 2,
-            flexDirection: "column",
-            alignItems: "flex-start",
-            alignContent: "flex-start",
-            height: "calc(100vh - 66px)",
-            width: "100vw",
-            overflowX: "scroll",
-            p: 2,
-          }}
-          ref={ref}
-        >
-          {typeof height === "number" &&
-            channels.map((channel) => (
-              <ChannelCard
-                key={channel.id}
-                channelId={channel.id}
-                guildId={guildId}
-                smallHeight={height / 2 - 66}
-                largeHeight={height - 74}
-              />
-            ))}
-        </Box>
+    <Box sx={{ position: "relative" }}>
+      {(guildPending || channelsPending) && <StatusBar>Loading...</StatusBar>}
+      {(guildLastError || channelsLastError) && (
+        <StatusBar error>Something went wrong</StatusBar>
       )}
+      <Box
+        sx={{
+          height: "calc(100vh - 66px)",
+          width: "100vw",
+          minWidth: 1000,
+          display: "flex",
+        }}
+      >
+        {channels && guildId && (
+          <>
+            <Box
+              sx={{
+                overflowY: "scroll",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+                p: 1,
+              }}
+            >
+              {typeof height === "number" &&
+                channels.map((channel) => (
+                  <ChannelCard
+                    key={channel.id}
+                    channelId={channel.id}
+                    guildId={guildId}
+                    smallHeight={height / 2 - 66}
+                    largeHeight={height - 74}
+                    variant="palette"
+                  />
+                ))}
+            </Box>
+            <Box
+              sx={{
+                flexGrow: 1,
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 2,
+                flexDirection: "column",
+                alignItems: "flex-start",
+                alignContent: "flex-start",
+                overflowX: "scroll",
+                p: 2,
+              }}
+              ref={ref}
+            >
+              {typeof height === "number" &&
+                channels.map((channel) => (
+                  <ChannelCard
+                    key={channel.id}
+                    channelId={channel.id}
+                    guildId={guildId}
+                    smallHeight={height / 2 - 66}
+                    largeHeight={height - 74}
+                  />
+                ))}
+            </Box>
+          </>
+        )}
+      </Box>
     </Box>
   );
 };
+
+const StatusBar = ({
+  children,
+  error,
+}: React.PropsWithChildren<{ error?: boolean }>) => (
+  <Box
+    sx={{
+      position: "absolute",
+      top: 0,
+      px: 2,
+      bgcolor: error ? "red" : "background.paper",
+    }}
+  >
+    {children}
+  </Box>
+);
 
 export default GuildOverview;

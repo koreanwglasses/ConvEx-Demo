@@ -6,6 +6,7 @@ import { useAppDispatch } from "./hooks";
 import { fetchCurrentUser } from "./data/current-user-slice";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import CssBaseline from "@mui/material/CssBaseline";
+import { Box } from "@mui/system";
 
 const theme = createTheme({
   palette: {
@@ -32,8 +33,10 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Navbar />
-      <Outlet />
+      <Box sx={{ minWidth: 1000 }}>
+        <Navbar />
+        <Outlet />
+      </Box>
     </ThemeProvider>
   );
 };
