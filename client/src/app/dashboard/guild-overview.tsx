@@ -64,7 +64,7 @@ const GuildOverview = () => {
                 channelId={channel.id}
                 guildId={guildId}
                 smallHeight={height / 2 - 66}
-                largeHeight={height - 32}
+                largeHeight={height - 74}
               />
             ))}
         </Box>
