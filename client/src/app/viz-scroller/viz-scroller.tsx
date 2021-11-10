@@ -136,20 +136,25 @@ const CustomScrollbar = ({
   const { maxScrollHeight = 400, clientHeight } = useVizScrollerGroup(groupKey);
 
   const thumb = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const thumbHeight = 50;
+  const paddingVertical = 3;
 
   const [isScrolling, setIsScrolling] = useState(false);
   useEffect(() => {
     if (container) {
       let timeout: NodeJS.Timeout;
       const handleScroll = () => {
-        thumb.current?.setAttribute(
-          "style",
-          `bottom:${
-            (-container.scrollTop / (maxScrollHeight - clientHeight)) *
-              (clientHeight - 56) +
-            3
-          }px`
-        );
+        if (!isDragging.current)
+          thumb.current?.setAttribute(
+            "style",
+            `bottom:${
+              (-container.scrollTop / (maxScrollHeight - clientHeight)) *
+                (clientHeight - thumbHeight - 2 * paddingVertical) +
+              paddingVertical
+            }px`
+          );
 
         setIsScrolling(true);
 
@@ -163,8 +168,39 @@ const CustomScrollbar = ({
       };
       container.addEventListener("scroll", handleScroll);
 
+      const handleMouseUp = () => {
+        isDragging.current = false;
+      };
+      window.addEventListener("mouseup", handleMouseUp);
+
+      const handleMouseMove = (e: MouseEvent) => {
+        if (isDragging.current) {
+          const y = container.getBoundingClientRect().bottom - e.clientY;
+          container.scrollTop = Math.max(
+            Math.min(
+              0,
+              (-(maxScrollHeight - clientHeight) *
+                (y - thumbHeight / 2 - paddingVertical)) /
+                (clientHeight - thumbHeight - 2 * paddingVertical)
+            ),
+            -maxScrollHeight + clientHeight
+          );
+
+          thumb.current?.setAttribute(
+            "style",
+            `bottom:${Math.min(
+              Math.max(paddingVertical, y - thumbHeight / 2),
+              clientHeight - paddingVertical - thumbHeight
+            )}px`
+          );
+        }
+      };
+      window.addEventListener("mousemove", handleMouseMove);
+
       return () => {
         container.removeEventListener("scroll", handleScroll);
+        window.removeEventListener("mouseup", handleMouseUp);
+        window.removeEventListener("mousemove", handleMouseMove);
       };
     }
   }, [clientHeight, container, maxScrollHeight]);
@@ -174,7 +210,7 @@ const CustomScrollbar = ({
       sx={{
         position: "fixed",
         right: 2,
-        top: 3,
+        top: paddingVertical,
         height: "calc(100% - 6px)",
         width: 9,
         bgcolor: "rgba(0,0,0,0.1)",
@@ -193,17 +229,20 @@ const CustomScrollbar = ({
             }
           : undefined
       }
+      onMouseDown={() => {
+        isDragging.current = true;
+      }}
     >
       <Box
         sx={{
           position: "fixed",
           right: 2,
-          height: 50,
+          height: thumbHeight,
           width: 9,
           borderRadius: 5,
           bgcolor: "rgba(0,0,0,0.5)",
           bottom: 3,
-          transition: "bottom 0.05s"
+          transition: "bottom 0.05s",
         }}
         ref={thumb}
       ></Box>
