@@ -79,7 +79,7 @@ const GuildOverview = () => {
                 flexGrow: 1,
                 display: "flex",
                 flexWrap: "wrap",
-                gap: 2,
+                gap: 1,
                 flexDirection: "column",
                 alignItems: "flex-start",
                 alignContent: "flex-start",
@@ -94,8 +94,8 @@ const GuildOverview = () => {
                     key={channel.id}
                     channelId={channel.id}
                     guildId={guildId}
-                    smallHeight={height / 2 - 66}
-                    largeHeight={height - 74}
+                    smallHeight={height / 2 - 62}
+                    largeHeight={height - 73}
                   />
                 ))}
             </Box>
