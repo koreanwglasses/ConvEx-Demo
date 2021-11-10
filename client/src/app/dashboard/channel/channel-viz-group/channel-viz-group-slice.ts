@@ -276,15 +276,17 @@ export const fetchOlderMessages =
     const j = i + maxMessages + 100;
 
     if ((slice.messages?.length ?? 0) < j && !slice.pending) {
-      const messages = await dispatch(
-        MessagesSlice.fetchOlderMessages(guildId, channelId)
-      );
-
-      if (messages?.length && !newestMessage)
-        dispatch(
-          setProperty({ groupKey, key: "newestMessage", value: messages[0] })
-        );
+      await dispatch(MessagesSlice.fetchOlderMessages(guildId, channelId));
     }
+
+    if (slice.messages?.length && !newestMessage)
+      dispatch(
+        setProperty({
+          groupKey,
+          key: "newestMessage",
+          value: slice.messages[0],
+        })
+      );
 
     dispatch(adjustMaxMessages({ groupKey, amount: 100 }));
   };
