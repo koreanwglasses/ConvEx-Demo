@@ -10,7 +10,6 @@ import {
 import {
   ButtonBase,
   Card,
-  CardActionArea,
   Paper,
   ToggleButton,
   ToggleButtonGroup,
@@ -34,11 +33,7 @@ import {
   transitionLayouts,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
-
-let id = 0;
-const useUID = () => {
-  return useRef(id++).current;
-};
+import { Draggable } from "react-beautiful-dnd";
 
 export const ChannelCard = ({
   channelId,
@@ -46,16 +41,20 @@ export const ChannelCard = ({
   halfHeight,
   fullHeight,
   miniHeight = halfHeight * 0.75,
-  initialDisplayMode = "half",
+  defaultDisplayMode = "half",
+  defaultExpanded = false,
+  index,
 }: {
   channelId: string;
   guildId: string;
   miniHeight?: number;
   halfHeight: number;
   fullHeight: number;
-  initialDisplayMode?: "mini" | "half" | "full";
+  defaultDisplayMode?: "mini" | "half" | "full";
+  index: number;
+  defaultExpanded?: boolean;
 }) => {
-  const groupKey = `${channelId}/${useUID()}`;
+  const groupKey = `${channelId}`;
 
   const dispatch = useAppDispatch();
   const channel = useAppSelector(selectChannelById(guildId, channelId));
@@ -69,12 +68,12 @@ export const ChannelCard = ({
   );
 
   const [loaded, setLoaded] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   useEffect(() => {
     if (expanded && !loaded) setLoaded(true);
   }, [expanded, loaded]);
 
-  const [displayMode, setDisplayMode] = useState(initialDisplayMode);
+  const [displayMode, setDisplayMode] = useState(defaultDisplayMode);
   const chartWidth = { mini: 200, half: 300, full: 400 }[displayMode];
   const chartHeight = { mini: miniHeight, half: halfHeight, full: fullHeight }[
     displayMode
@@ -107,7 +106,7 @@ export const ChannelCard = ({
     value: ChartType[],
     pivot?: MessageData
   ) => {
-    const newCharts = displayMode === "full" ? value : value.slice(-1);
+    const newCharts = displayMode === "mini" ? value.slice(-1) : value;
 
     const wasChatOpen = charts.includes("CompactChatView");
     const isChatOpen = newCharts.includes("CompactChatView");
@@ -132,123 +131,130 @@ export const ChannelCard = ({
   };
 
   return (
-    <Card
-      sx={{
-        flexShrink: 0,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "flex-start",
-        minWidth: chartWidth + 36,
-        overflowX: displayMode === "mini" ? "hidden" : undefined,
-        width: displayMode === "mini" ? chartWidth + 36 : undefined,
-      }}
-    >
-      <Box sx={{ display: "flex", alignItems: "stretch" }}>
-        <CardActionArea
+    <Draggable draggableId={groupKey} index={index}>
+      {(provided, snapshot) => (
+        <Card
           sx={{
+            flexShrink: 0,
             display: "flex",
-            justifyContent: "space-between",
-            flexGrow: 1,
-            alignItems: "center",
-            pr: 0.5,
+            flexDirection: "column",
+            justifyContent: "flex-start",
+            minWidth: chartWidth + 36,
+            overflowX: displayMode === "mini" ? "hidden" : undefined,
+            width: displayMode === "mini" ? chartWidth + 36 : undefined,
+            height: "fit-content",
           }}
-          onClick={() => setExpanded(!expanded)}
+          ref={provided.innerRef}
+          {...provided.draggableProps}
         >
-          <Typography
-            noWrap
-            variant="h6"
-            gutterBottom
-            sx={{
-              m: 1,
-              fontSize: 16,
-              width: chartWidth - 50,
-            }}
-          >
-            #{channel && channel.name}
-          </Typography>
-          {expanded ? <ExpandLess /> : <ExpandMore />}
-        </CardActionArea>
-        {(displayMode === "full" || displayMode === "half") && (
-          <Box>
-            <ButtonBase
-              sx={{ width: 36, height: 1.0 }}
-              onClick={handleToggleMaximized}
+          <Box sx={{ display: "flex", alignItems: "stretch" }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexGrow: 1,
+                alignItems: "center",
+              }}
+              {...provided.dragHandleProps}
             >
-              {displayMode === "full" ? (
-                <CloseFullscreen fontSize="small" />
-              ) : (
-                <OpenInFull fontSize="small" />
-              )}
-            </ButtonBase>
-          </Box>
-        )}
-      </Box>
-
-      <Paper
-        sx={{
-          height: fullHeight,
-          transition: "max-height 0.3s",
-          overflow: "hidden",
-          display: "flex",
-        }}
-        style={{
-          maxHeight: expanded ? chartHeight : 0,
-        }}
-        elevation={0}
-      >
-        <CustomDrawer>
-          <ToggleButtonGroup
-            orientation="vertical"
-            value={charts}
-            onChange={handleChartChanged}
-          >
-            <ToggleButton
-              value="CompactChatView"
-              sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
-            >
-              <Feed sx={{ mr: 1 }} />
-              Chat
-            </ToggleButton>
-            <ToggleButton
-              value="AnalysisBars"
-              sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
-            >
-              <BarChart sx={{ mr: 1 }} />
-              Toxicity Analysis
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </CustomDrawer>
-        <Box>
-          {loaded && (
-            <ChannelVizGroup
-              guildId={guildId}
-              channelId={channelId}
-              groupKey={groupKey}
-              initialLayoutKey={initialDisplayMode}
-            >
-              <CompactChatView
-                width={chartWidth}
-                hidden={!charts.includes("CompactChatView")}
-              />
-              <TransitionContainer
-                mounted={charts.includes("AnalysisBars")}
-                delay={500}
+              <Typography
+                noWrap
+                variant="h6"
+                gutterBottom
+                sx={{
+                  m: 1,
+                  fontSize: 16,
+                  width: chartWidth - 52,
+                }}
               >
-                {(hidden) => (
-                  <AnalysisBars
-                    width={chartWidth}
-                    hidden={hidden}
-                    onDoubleClickBar={(e, [message]) =>
-                      handleDoubleClickBar.current!(message)
-                    }
-                  />
+                #{channel && channel.name}
+              </Typography>
+            </Box>
+            {displayMode === "mini" && (
+              <ButtonBase
+                sx={{ width: 36 }}
+                onClick={() => setExpanded(!expanded)}
+              >
+                {expanded ? <ExpandLess /> : <ExpandMore />}
+              </ButtonBase>
+            )}
+            {(displayMode === "full" || displayMode === "half") && (
+              <ButtonBase sx={{ width: 36 }} onClick={handleToggleMaximized}>
+                {displayMode === "full" ? (
+                  <CloseFullscreen fontSize="small" />
+                ) : (
+                  <OpenInFull fontSize="small" />
                 )}
-              </TransitionContainer>
-            </ChannelVizGroup>
-          )}
-        </Box>
-      </Paper>
-    </Card>
+              </ButtonBase>
+            )}
+          </Box>
+
+          <Paper
+            sx={{
+              height: fullHeight,
+              transition: "max-height 0.3s",
+              overflow: "hidden",
+              display: "flex",
+            }}
+            style={{
+              maxHeight: expanded ? chartHeight : 0,
+            }}
+            elevation={0}
+          >
+            <CustomDrawer>
+              <ToggleButtonGroup
+                orientation="vertical"
+                value={charts}
+                onChange={handleChartChanged}
+              >
+                <ToggleButton
+                  value="CompactChatView"
+                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+                >
+                  <Feed sx={{ mr: 1 }} />
+                  Chat
+                </ToggleButton>
+                <ToggleButton
+                  value="AnalysisBars"
+                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+                >
+                  <BarChart sx={{ mr: 1 }} />
+                  Toxicity Analysis
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </CustomDrawer>
+            <Box>
+              {loaded && (
+                <ChannelVizGroup
+                  guildId={guildId}
+                  channelId={channelId}
+                  groupKey={groupKey}
+                  initialLayoutKey={defaultDisplayMode}
+                >
+                  <CompactChatView
+                    width={chartWidth}
+                    hidden={!charts.includes("CompactChatView")}
+                  />
+                  <TransitionContainer
+                    mounted={charts.includes("AnalysisBars")}
+                    delay={500}
+                  >
+                    {(hidden) => (
+                      <AnalysisBars
+                        width={chartWidth}
+                        hidden={hidden}
+                        onDoubleClickBar={(e, [message]) =>
+                          handleDoubleClickBar.current!(message)
+                        }
+                      />
+                    )}
+                  </TransitionContainer>
+                </ChannelVizGroup>
+              )}
+            </Box>
+          </Paper>
+        </Card>
+      )}
+    </Draggable>
   );
 };
 
