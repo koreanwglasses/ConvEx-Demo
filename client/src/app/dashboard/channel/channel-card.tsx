@@ -34,6 +34,7 @@ import {
 } from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
 import { Draggable } from "react-beautiful-dnd";
+import { ActivityVolume } from "./activity-volume";
 
 export const ChannelCard = ({
   channelId,
@@ -98,7 +99,7 @@ export const ChannelCard = ({
     );
   };
 
-  type ChartType = "CompactChatView" | "AnalysisBars";
+  type ChartType = "CompactChatView" | "AnalysisBars" | "ActivityVolume";
   const [charts, setCharts] = useState<ChartType[]>(["CompactChatView"]);
 
   const handleChartChanged = (
@@ -219,6 +220,13 @@ export const ChannelCard = ({
                 >
                   <BarChart sx={{ mr: 1 }} />
                   Toxicity Analysis
+                </ToggleButton>{" "}
+                <ToggleButton
+                  value="ActivityVolume"
+                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+                >
+                  <BarChart sx={{ mr: 1 }} />
+                  Activity
                 </ToggleButton>
               </ToggleButtonGroup>
             </CustomDrawer>
@@ -246,6 +254,14 @@ export const ChannelCard = ({
                           handleDoubleClickBar.current!(message)
                         }
                       />
+                    )}
+                  </TransitionContainer>
+                  <TransitionContainer
+                    mounted={charts.includes("ActivityVolume")}
+                    delay={500}
+                  >
+                    {(hidden) => (
+                      <ActivityVolume width={chartWidth} hidden={hidden} />
                     )}
                   </TransitionContainer>
                 </ChannelVizGroup>
