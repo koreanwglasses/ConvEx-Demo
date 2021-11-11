@@ -42,6 +42,8 @@ export const AnalysisBars = ({
     (svgRef) => {
       const svg = d3.select(svgRef);
       const gridG = svg.append("g");
+      const timeGridG = svg.append("g");
+      const timeGrid2G = svg.append("g");
 
       const rulerG = svg.append("g");
       const rulerThumb = rulerG.append("circle");
@@ -61,6 +63,8 @@ export const AnalysisBars = ({
         barsG,
         labelsG,
         gridG,
+        timeGridG,
+        timeGrid2G,
         rulerG,
         ruler,
         rulerActiveArea,
@@ -72,12 +76,15 @@ export const AnalysisBars = ({
       width,
       clientHeight,
       canvasHeight,
+      y,
       applyY,
       data,
       svg,
       barsG,
       labelsG,
       gridG,
+      timeGridG,
+      timeGrid2G,
       rulerG,
       ruler,
       rulerActiveArea,
@@ -136,6 +143,26 @@ export const AnalysisBars = ({
             .tickValues([0, 0.25, 0.5, 0.75, 1])
             .tickSize(-canvasHeight)
             .tickFormat(null)
+        );
+
+      const timeAxis = d3
+        .scaleTime()
+        .domain(data.map(([msg]) => msg.createdTimestamp))
+        .range(data.map(([msg]) => y(msg)));
+      timeGridG
+        .attr("class", "grid")
+        .attr("transform", `translate(${width}, 0)`)
+        .attr("color", "rgba(255, 255, 255, 0.075)")
+        .call(d3.axisLeft(timeAxis).tickSize(10));
+      timeGrid2G
+        .attr("class", "grid")
+        .attr("transform", `translate(0, 0)`)
+        .attr("color", "rgba(255, 255, 255, 0.075)")
+        .call(
+          d3
+            .axisRight(timeAxis)
+            .tickSize(width - 50)
+            .tickFormat("" as any)
         );
 
       /////////////////////
