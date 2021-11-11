@@ -45,13 +45,13 @@ export const AnalysisBars = ({
       const timeGridG = svg.append("g");
       const timeGrid2G = svg.append("g");
 
+      const barsG = svg.append("g");
+      const labelsG = svg.append("g");
+
       const rulerG = svg.append("g");
       const rulerThumb = rulerG.append("circle");
       const ruler = rulerG.append("path");
       const rulerActiveArea = svg.append("rect");
-
-      const barsG = svg.append("g");
-      const labelsG = svg.append("g");
 
       const state = {
         isDragging: false,
@@ -112,6 +112,7 @@ export const AnalysisBars = ({
         .selectAll("text")
         .data(data)
         .join("text")
+        .style("user-select", "none")
         .style("font-weight", "bold")
         .style("fill", ([, tox]) =>
           typeof tox !== "number"
@@ -247,7 +248,7 @@ export const AnalysisBars = ({
           .attr("cy", y)
           .attr("r", hoverThumbRadius);
 
-        ruler.attr("stroke-width", 2.5);
+        ruler.attr("stroke-width", 3);
       };
 
       const whileDragging = (e: MouseEvent) => {
