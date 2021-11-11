@@ -29,38 +29,24 @@ const GuildOverview = () => {
     if (channelsData) setChannelPalette(Object.values(channelsData));
   }, [channelsData]);
 
-  const [dashboardColumns, setDashboardColumns] = useState<ChannelData[][]>([
-    [],
-  ]);
+  const [dashboard, setDashboard] = useState<ChannelData[]>([]);
 
   const handleDragEnd = (result: DropResult, provided: ResponderProvided) => {
     if (!result.destination) return;
 
-    const cell = (droppableId: string) => {
-      const [, i] = droppableId.match(/-(\d+)$/)!;
-      return +i;
-    };
-
-    const item =
+    const item = (
       result.source.droppableId === "channel-palette"
-        ? channelPalette!.splice(result.source.index, 1)[0]
-        : dashboardColumns[cell(result.source.droppableId)].splice(
-            result.source.index,
-            1
-          )[0];
+        ? channelPalette
+        : dashboard
+    )!.splice(result.source.index, 1)[0];
 
     if (result.destination.droppableId === "channel-palette") {
       channelPalette!.splice(result.destination.index, 0, item);
       setChannelPalette([...channelPalette!]);
     } else {
-      const i = cell(result.destination.droppableId);
-      dashboardColumns[i].splice(result.destination.index, 0, item);
+      dashboard.splice(result.destination.index, 0, item);
+      setDashboard([...dashboard]);
     }
-
-    setDashboardColumns([
-      ...dashboardColumns.filter((channels) => channels.length),
-      [],
-    ]);
   };
 
   const [height, setHeight] = useState<number>();
@@ -131,23 +117,16 @@ const GuildOverview = () => {
                   gap: 1,
                   overflowX: "scroll",
                   p: 1,
-                  flexDirection: "column",
-                  flexWrap: "wrap",
-                  alignContent: "flex-start",
                 }}
                 ref={ref}
               >
-                {typeof height === "number" &&
-                  dashboardColumns.map((channels, i) => (
-                    <DashboardCell
-                      index={i}
-                      key={i}
-                      last={i === dashboardColumns.length - 1}
-                      guildId={guildId}
-                      height={height}
-                      channels={channels}
-                    />
-                  ))}
+                {typeof height === "number" && (
+                  <DashboardDrop
+                    guildId={guildId}
+                    height={height}
+                    channels={dashboard}
+                  />
+                )}
               </Box>
             </>
           )}
@@ -157,31 +136,31 @@ const GuildOverview = () => {
   );
 };
 
-const DashboardCell = ({
+const DashboardDrop = ({
   guildId,
   height,
-  index,
   channels,
-  last,
 }: {
   guildId: string;
   height: number;
-  index: number;
   channels: ChannelData[];
-  last: boolean;
 }) => {
   return (
-    <Droppable droppableId={`dashboard-cell-${index}`} direction="horizontal">
+    <Droppable droppableId={`dashboard`} direction="horizontal">
       {(provided, snapshot) => (
         <Box
           sx={{
             display: "flex",
             bgcolor: snapshot.isDraggingOver
-              ? "rgba(32,156,192,0.2)"
+              ? "rgba(32,156,192,0.1)"
               : "rgba(32,156,192,0)",
             gap: 1,
+            flexWrap: "wrap",
+            alignItems: "flex-start",
+            alignContent: "flex-start",
+            flexDirection: "column",
+            flexGrow: 1,
             minWidth: 336,
-            flexGrow: last ? 1 : 0,
             transition: "background-color 0.2s",
           }}
           ref={provided.innerRef}
