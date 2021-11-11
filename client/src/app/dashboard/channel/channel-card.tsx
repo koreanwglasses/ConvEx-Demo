@@ -92,7 +92,7 @@ export const ChannelCard = ({
     dispatch(
       transitionLayouts({
         groupKey,
-        layoutKey: displayMode,
+        layoutKey: newDisplayMode,
         smooth: false,
       })
     );
