@@ -141,7 +141,7 @@ export const ChannelCard = ({
             flexDirection: "column",
             justifyContent: "flex-start",
             minWidth: chartWidth + 36,
-            overflowX: displayMode === "mini" ? "hidden" : undefined,
+            overflowX: displayMode === "mini" ? "clip" : undefined,
             width: displayMode === "mini" ? chartWidth + 36 : undefined,
             height: "fit-content",
           }}
@@ -193,7 +193,7 @@ export const ChannelCard = ({
             sx={{
               height: fullHeight,
               transition: "max-height 0.3s",
-              overflow: "hidden",
+              overflow: "clip",
               display: "flex",
             }}
             style={{

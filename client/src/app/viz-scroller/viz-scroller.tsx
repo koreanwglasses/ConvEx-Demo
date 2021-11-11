@@ -107,7 +107,7 @@ export const VizScroller = forwardRef(
     return (
       <Box
         sx={{
-          overflowY: "hidden",
+          overflowY: "clip",
           display: "flex",
           flexFlow: "column-reverse",
           position: "relative",

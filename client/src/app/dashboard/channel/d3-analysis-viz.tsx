@@ -228,7 +228,11 @@ const D3Viz = <Selections extends Record<string, unknown>>({
   return (
     <VizScroller
       groupKey={groupKey}
-      sx={{ position: "relative", transition: "max-width 0.3s" }}
+      sx={{
+        position: "relative",
+        transition: "max-width 0.3s",
+        overflowX: "clip",
+      }}
       style={{
         maxWidth: hidden ? 0 : width,
         width: Math.max(width, prevWidth ?? 0),

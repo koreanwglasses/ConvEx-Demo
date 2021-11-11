@@ -5,6 +5,8 @@ import { MessageData } from "../../../common/api-data-types";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import {
+  selectLayoutData,
+  selectLayoutMode,
   selectThreshold,
   setThreshold,
 } from "./channel-viz-group/channel-viz-group-slice";
@@ -14,6 +16,10 @@ import { CompactMessageGroupBase } from "../../components/ui/compact-chat-view-b
 import { selectMember } from "../../data/members-slice";
 import { store } from "../../store";
 import { Card } from "@mui/material";
+import {
+  messageTimeScale,
+  renderTimeGrid,
+} from "../../components/ui/time-grid";
 
 export const AnalysisBars = ({
   hidden,
@@ -34,6 +40,7 @@ export const AnalysisBars = ({
   const rulerActiveRadius = 20;
   const barHeight = 20;
 
+  const stickiesContainer = useRef<HTMLDivElement>(null);
   const overlayContainer = useRef<HTMLDivElement>(null);
   const thresholdLabel = useRef<HTMLElement>(null);
   const messagePopover = useRef<HTMLDivElement>(null);
@@ -146,25 +153,10 @@ export const AnalysisBars = ({
             .tickFormat(null)
         );
 
-      const timeAxis = d3
-        .scaleTime()
-        .domain(data.map(([msg]) => msg.createdTimestamp))
-        .range(data.map(([msg]) => y(msg)));
-      timeGridG
-        .attr("class", "grid")
-        .attr("transform", `translate(${width}, 0)`)
-        .attr("color", "rgba(255, 255, 255, 0.075)")
-        .call(d3.axisLeft(timeAxis).tickSize(10));
-      timeGrid2G
-        .attr("class", "grid")
-        .attr("transform", `translate(0, 0)`)
-        .attr("color", "rgba(255, 255, 255, 0.075)")
-        .call(
-          d3
-            .axisRight(timeAxis)
-            .tickSize(width - 50)
-            .tickFormat("" as any)
-        );
+      // Time grid
+
+      const yTime = messageTimeScale(groupKey, y, data);
+      renderTimeGrid(data, yTime, stickiesContainer.current, canvasHeight);
 
       /////////////////////
       // DYNAMIC STYLING //
@@ -403,6 +395,7 @@ export const AnalysisBars = ({
           ref={messagePopover}
         ></Card>
       </Box>
+      <Box ref={stickiesContainer} />
     </D3VizComponent>
   );
 };
