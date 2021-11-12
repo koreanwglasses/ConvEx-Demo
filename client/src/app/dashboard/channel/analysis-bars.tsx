@@ -161,8 +161,7 @@ export const AnalysisBars = ({
         data,
         yTime,
         stickiesContainer.current,
-        canvasHeight,
-        width
+        canvasHeight
       );
 
       /////////////////////

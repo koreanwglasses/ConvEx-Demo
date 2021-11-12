@@ -94,8 +94,7 @@ export const ActivityVolume = ({
         data,
         yTime,
         stickiesContainer.current,
-        canvasHeight,
-        width
+        canvasHeight
       );
 
       // gridG
