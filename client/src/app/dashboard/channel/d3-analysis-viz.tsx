@@ -1,7 +1,10 @@
 import { MessageData } from "../../../common/api-data-types";
-import { useAppSelector, usePreviousValue } from "../../hooks";
+import { useAppSelector, useArray, usePreviousValue } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
-import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
+import {
+  selectVizScrollerGroup,
+  useVizScrollerGroup,
+} from "../../viz-scroller/viz-scroller-slice";
 import React, {
   useCallback,
   useEffect,
@@ -13,28 +16,18 @@ import { selectBatchAnalysis } from "../../data/analyses-slice";
 import { arrayEqual } from "../../../utils";
 import {
   selectLayoutMode,
-  useOffsets,
   useMessages,
+  selectLayoutData,
+  selectOffsets,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
-import { shallowEqual } from "react-redux";
+import * as d3 from "d3";
+import { store } from "../../store";
+
+type Datum = readonly [MessageData, number | undefined];
 
 type DrawArgs = {
-  data: (readonly [MessageData, number | undefined])[];
-  applyY: (
-    offsetY: (datum: readonly [MessageData, number | undefined]) => number
-  ) => (
-    sel: d3.Selection<
-      any,
-      readonly [MessageData, number | undefined],
-      any,
-      unknown
-    >
-  ) => void;
-  y: (message: MessageData) => number;
-  yPrev?: (message: MessageData) => number;
-  isTransitioning: boolean;
-  transitionOffset: number;
+  data: Datum[];
   width: number;
   clientHeight: number;
   canvasHeight: number;
@@ -55,21 +48,24 @@ export const useD3VizComponent = <Selections extends Record<string, unknown>>(
 type Props<Selections> = React.PropsWithChildren<{
   initialize: (svgRef: SVGSVGElement) => Selections;
   draw: (args: DrawArgs & Selections) => void;
-  filterMargin?: number;
+  dataFilter?: (datum: Datum) => boolean;
   hidden?: boolean;
   width?: number;
+  dependencies?: unknown[];
 }>;
 
 const D3Viz = <Selections extends Record<string, unknown>>({
-  initialize,
-  draw,
+  initialize: initialize_,
+  draw: draw_,
   hidden = false,
+  dataFilter: dataFilter_,
   width = 300,
-  filterMargin = 0,
   children,
+  dependencies = [],
 }: Props<Selections>) => {
   const groupKey = useGroupKey();
   const messages = useMessages(groupKey);
+  const dataFilter = dataFilter_ ?? getDefaultDataFilter(groupKey);
 
   ////////////
   // LAYOUT //
@@ -80,22 +76,19 @@ const D3Viz = <Selections extends Record<string, unknown>>({
 
   const { canvasHeight, clientHeight, offset } = useVizScrollerGroup(groupKey);
 
-  const { isTransitioning, prevMode, transitionOffset, layoutKey } =
-    useAppSelector(selectLayoutMode(groupKey), shallowEqual);
+  // const { isTransitioning, prevMode, transitionOffset, layoutKey } =
+  //   useAppSelector(selectLayoutMode(groupKey), shallowEqual);
 
-  const initialOffsets = useOffsets(groupKey);
-  const prevInitialOffsets = useOffsets(groupKey, prevMode);
+  // const offsets = useOffsets(groupKey);
+  // const prevOffsets = useOffsets(groupKey, prevMode);
 
   //////////
   // DATA //
   //////////
+
   // Only rendering default messages and replies for now
-  const messagesToRender = useMemo(
-    () =>
-      messages?.filter(
-        (message) => message.type === "DEFAULT" || message.type === "REPLY"
-      ),
-    [messages]
+  const messagesToRender = messages?.filter(
+    (message) => message.type === "DEFAULT" || message.type === "REPLY"
   );
 
   const analyses = useAppSelector(
@@ -103,27 +96,28 @@ const D3Viz = <Selections extends Record<string, unknown>>({
     arrayEqual
   );
 
-  const data_ = useMemo(
-    () =>
-      messagesToRender?.map(
+  const data = useArray(
+    messagesToRender
+      ?.map(
         (message, i) =>
           [message, analyses[i].analysis?.overallToxicity] as const
-      ),
-    [messagesToRender, analyses]
+      )
+      .filter(dataFilter)
   );
 
   ///////////
   // CHART //
   ///////////
+
   // No deps since these functions are intended to be unchanging even if they
   // are technically different instances
-  const initialize_ = useCallback(
-    () => initialize(svgRef.current!),
+  const initialize = useCallback(
+    () => initialize_(svgRef.current!),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     []
   );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const draw_ = useMemo(() => draw, []);
+  const draw = useMemo(() => draw_, []);
 
   const selections = useRef<Selections>();
 
@@ -135,71 +129,13 @@ const D3Viz = <Selections extends Record<string, unknown>>({
   }, [offset]);
 
   useEffect(() => {
-    if (!data_ || !initialOffsets) return;
+    if (!data) return;
     if (!selections.current) {
-      selections.current = initialize_();
+      selections.current = initialize();
     }
 
-    const yFromInitialOffsets =
-      (initialOffsets?: (message: MessageData) => number | undefined) =>
-      (message: MessageData) => {
-        const io = initialOffsets?.(message);
-        if (typeof io !== "number") return;
-        return canvasHeight + io + offset;
-      };
-
-    const y = yFromInitialOffsets(initialOffsets);
-    const yPrev = yFromInitialOffsets(prevInitialOffsets);
-
-    const isWithinMargin = (y?: number) =>
-      typeof y === "number" &&
-      -filterMargin <= y &&
-      y <= canvasHeight + filterMargin;
-
-    const data = data_.filter(
-      ([message]) =>
-        isWithinMargin(y(message)) ||
-        (isTransitioning && isWithinMargin(yPrev(message)))
-    );
-
-    const applyY =
-      (
-        offsetY: (datum: readonly [MessageData, number | undefined]) => number
-      ) =>
-      (
-        sel: d3.Selection<
-          any,
-          readonly [MessageData, number | undefined],
-          any,
-          unknown
-        >
-      ) => {
-        if (isTransitioning) {
-          sel
-            .attr(
-              "y",
-              (datum) => yPrev!(datum[0])! + offsetY(datum) + transitionOffset
-            )
-            .transition()
-            .delay(250)
-            .duration(400)
-            .attr("y", (datum) => y!(datum[0])! + offsetY(datum));
-        } else {
-          sel.attr("y", (datum) => y!(datum[0])! + offsetY(datum));
-        }
-      };
-
-    draw_({
-      data: data.filter(
-        ([message]) =>
-          typeof y(message) === "number" &&
-          (!isTransitioning || typeof yPrev(message) === "number")
-      ),
-      applyY,
-      y: y as (message: MessageData) => number,
-      yPrev: yPrev as (message: MessageData) => number,
-      isTransitioning,
-      transitionOffset,
+    draw({
+      data,
       width,
       clientHeight,
       canvasHeight,
@@ -210,17 +146,13 @@ const D3Viz = <Selections extends Record<string, unknown>>({
   }, [
     canvasHeight,
     clientHeight,
-    data_,
-    draw_,
-    filterMargin,
-    initialOffsets,
-    initialize_,
-    isTransitioning,
-    offset,
-    prevInitialOffsets,
-    transitionOffset,
     width,
-    layoutKey,
+    offset,
+    data,
+    draw,
+    initialize,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    ...dependencies,
   ]);
 
   const prevWidth = usePreviousValue(width);
@@ -248,4 +180,89 @@ const D3Viz = <Selections extends Record<string, unknown>>({
       {children}
     </VizScroller>
   );
+};
+
+export const getY = (groupKey: string) => {
+  const offsets = selectOffsets(groupKey)(store.getState());
+  const { offset, canvasHeight } = selectVizScrollerGroup(groupKey)(
+    store.getState()
+  );
+  return (datum: Datum) => offsets(datum[0]) + offset + canvasHeight;
+};
+
+export const getYPrev = (groupKey: string) => {
+  const { prevMode } = selectLayoutMode(groupKey)(store.getState());
+  const offsets = selectOffsets(groupKey, prevMode)(store.getState());
+  const { offset, canvasHeight } = selectVizScrollerGroup(groupKey)(
+    store.getState()
+  );
+  return (datum: Datum) => offsets(datum[0]) + offset + canvasHeight;
+};
+
+export const getDefaultDataFilter = (groupKey: string, margin = 50) => {
+  const { isTransitioning } = selectLayoutMode(groupKey)(store.getState());
+  const { canvasHeight } = selectVizScrollerGroup(groupKey)(store.getState());
+  const y = getY(groupKey);
+  const yPrev = getYPrev(groupKey);
+
+  const isWithinMargin = (y?: number) =>
+    typeof y === "number" && -margin <= y && y <= canvasHeight + margin;
+
+  return (datum: Datum) =>
+    isWithinMargin(y(datum)) ||
+    (isTransitioning && isWithinMargin(yPrev(datum)));
+};
+
+export const applyY =
+  (
+    groupKey: string,
+    offsetY: number | ((datum: Datum) => number),
+    attr = "y"
+  ) =>
+  (
+    sel: d3.Selection<
+      any,
+      readonly [MessageData, number | undefined],
+      any,
+      unknown
+    >
+  ) => {
+    const { isTransitioning, transitionOffset } = selectLayoutMode(groupKey)(
+      store.getState()
+    );
+    const y = getY(groupKey);
+    const yPrev = getYPrev(groupKey);
+
+    const offset = (datum: Datum) =>
+      typeof offsetY === "number" ? offsetY : offsetY(datum);
+
+    if (isTransitioning) {
+      sel
+        .attr(attr, (datum) => yPrev(datum) + offset(datum) + transitionOffset)
+        .transition()
+        .delay(250)
+        .duration(400)
+        .attr(attr, (datum) => y(datum) + offset(datum));
+    } else {
+      sel.attr(attr, (datum) => y(datum) + offset(datum));
+    }
+  };
+
+export const messageTimeScale = (groupKey: string, data: Datum[]) => {
+  const { offsetTopMap, offsetMap } = selectLayoutData(groupKey)(
+    store.getState()
+  );
+  const { mode } = selectLayoutMode(groupKey)(store.getState());
+  const y = getY(groupKey);
+
+  return d3
+    .scaleTime()
+    .domain(data.map(([msg]) => msg.createdTimestamp))
+    .range(
+      data.map((datum) =>
+        mode === "map"
+          ? offsetTopMap[datum[0].id] - offsetMap[datum[0].id] + y(datum)
+          : y(datum)
+      )
+    );
 };

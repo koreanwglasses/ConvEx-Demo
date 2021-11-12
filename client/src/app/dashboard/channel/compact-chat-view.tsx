@@ -3,7 +3,12 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnalysisData, MessageData } from "../../../common/api-data-types";
 import { selectBatchAnalysis } from "../../data/analyses-slice";
 import { fetchMember, selectMember } from "../../data/members-slice";
-import { useAppDispatch, useAppSelector, usePreviousValue } from "../../hooks";
+import {
+  useAppDispatch,
+  useAppSelector,
+  useArray,
+  usePreviousValue,
+} from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
 import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import {
@@ -40,62 +45,60 @@ export const CompactChatView = ({
   const offsets = useOffsets(groupKey);
 
   // Only rendering default messages and replies for now
-  const messagesToRender = useMemo(() => {
-    if (!messages) return;
+  const messagesToRender = useArray(
+    useMemo(() => {
+      if (!messages) return;
 
-    const messagesToRender = messages.filter(
-      (message) => message.type === "DEFAULT" || message.type === "REPLY"
-    );
-
-    let lastComputed =
-      messagesToRender.findIndex(
-        (message, i) => !(i === 0 || message.id in offsetMap)
-      ) - 1;
-    if (lastComputed === -1) lastComputed = messagesToRender.length - 1;
-
-    if (hidden) {
-      const margin = 100;
-
-      const topOfCanvas = messagesToRender.findIndex(
-        (message) => offsets(message) + margin < -offset - canvasHeight
+      const messagesToRender = messages.filter(
+        (message) => message.type === "DEFAULT" || message.type === "REPLY"
       );
 
-      return messagesToRender.slice(lastComputed, topOfCanvas);
-    } else {
-      const margin = 50;
+      let lastComputed =
+        messagesToRender.findIndex(
+          (message, i) => !(i === 0 || message.id in offsetMap)
+        ) - 1;
+      if (lastComputed === -1) lastComputed = messagesToRender.length - 1;
 
-      let bottomOfCanvas = messagesToRender.findIndex(
-        (message) =>
-          message.id in offsetTopMap &&
-          offsetTopMap[message.id] - margin < -offset
-      );
-      if (bottomOfCanvas === -1) bottomOfCanvas = messagesToRender.length - 1;
+      if (hidden) {
+        const margin = 100;
 
-      let topOfCanvas = messagesToRender.findIndex(
-        (message) =>
-          message.id in offsetBottomMap &&
-          offsetBottomMap[message.id] < -offset - canvasHeight
-      );
-      if (topOfCanvas === -1) topOfCanvas = messagesToRender.length - 1;
+        const topOfCanvas = messagesToRender.findIndex(
+          (message) => offsets(message) + margin < -offset - canvasHeight
+        );
 
-      const start = Math.min(lastComputed, bottomOfCanvas);
-      const end = Math.min(topOfCanvas, start + 100);
-      return messagesToRender.slice(start, end);
-    }
-  }, [
-    canvasHeight,
-    hidden,
-    messages,
-    offset,
-    offsetBottomMap,
-    offsetMap,
-    offsetTopMap,
-    offsets,
-  ]);
+        return messagesToRender.slice(lastComputed, topOfCanvas);
+      } else {
+        const margin = 50;
 
-  const first = messagesToRender?.length && messagesToRender[0];
-  const last =
-    messagesToRender?.length && messagesToRender[messagesToRender.length - 1];
+        let bottomOfCanvas = messagesToRender.findIndex(
+          (message) =>
+            message.id in offsetTopMap &&
+            offsetTopMap[message.id] - margin < -offset
+        );
+        if (bottomOfCanvas === -1) bottomOfCanvas = messagesToRender.length - 1;
+
+        let topOfCanvas = messagesToRender.findIndex(
+          (message) =>
+            message.id in offsetBottomMap &&
+            offsetBottomMap[message.id] < -offset - canvasHeight
+        );
+        if (topOfCanvas === -1) topOfCanvas = messagesToRender.length - 1;
+
+        const start = Math.min(lastComputed, bottomOfCanvas);
+        const end = Math.min(topOfCanvas, start + 100);
+        return messagesToRender.slice(start, end);
+      }
+    }, [
+      canvasHeight,
+      hidden,
+      messages,
+      offset,
+      offsetBottomMap,
+      offsetMap,
+      offsetTopMap,
+      offsets,
+    ])
+  );
 
   const messageGroups = useMemo(() => {
     const groupingThreshold = 1000 * 60 * 5;
@@ -123,9 +126,7 @@ export const CompactChatView = ({
     }, [] as MessageData[][]);
 
     return messageGroups;
-    // Only update if contents of array have changed. Just check first and last elem.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [first, last]);
+  }, [messagesToRender]);
 
   const prevWidth = usePreviousValue(width);
 

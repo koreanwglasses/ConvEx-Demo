@@ -5,21 +5,23 @@ import { MessageData } from "../../../common/api-data-types";
 import { useAppDispatch, useAppSelector } from "../../hooks";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import {
-  selectLayoutData,
   selectLayoutMode,
   selectThreshold,
   setThreshold,
 } from "./channel-viz-group/channel-viz-group-slice";
-import { useD3VizComponent } from "./d3-analysis-viz";
+import {
+  useD3VizComponent,
+  messageTimeScale,
+  getDefaultDataFilter,
+  applyY,
+} from "./d3-analysis-viz";
 import ReactDOM from "react-dom";
 import { CompactMessageGroupBase } from "../../components/ui/compact-chat-view-base";
 import { selectMember } from "../../data/members-slice";
 import { store } from "../../store";
 import { Card } from "@mui/material";
-import {
-  messageTimeScale,
-  renderTimeGrid,
-} from "../../components/ui/time-grid";
+import { renderTimeGrid } from "../../components/ui/time-grid";
+import { shallowEqual } from "react-redux";
 
 export const AnalysisBars = ({
   hidden,
@@ -35,6 +37,11 @@ export const AnalysisBars = ({
 }) => {
   const groupKey = useGroupKey();
   const initialThreshold = useAppSelector(selectThreshold(groupKey));
+  const { isTransitioning } = useAppSelector(
+    selectLayoutMode(groupKey),
+    shallowEqual
+  );
+
   const dispatch = useAppDispatch();
 
   const rulerActiveRadius = 20;
@@ -81,23 +88,19 @@ export const AnalysisBars = ({
     },
     ({
       width,
-      clientHeight,
       canvasHeight,
-      y,
-      applyY,
       data,
       svg,
       barsG,
       labelsG,
       gridG,
-      timeGridG,
-      timeGrid2G,
-      rulerG,
       ruler,
       rulerActiveArea,
       rulerThumb,
       state,
     }) => {
+      console.log("render");
+
       ////////////////
       // BASE GRAPH //
       ////////////////
@@ -111,7 +114,7 @@ export const AnalysisBars = ({
         .attr("width", ([, tox]) => x(tox ?? 0) - x(0))
         .attr("height", barHeight)
         .attr("fill", ([, tox]) => (tox ? d3.interpolateYlOrRd(tox) : "white"))
-        .call(applyY(() => -barHeight / 2))
+        .call(applyY(groupKey, -barHeight / 2))
         .on("dblclick", (e, data) => onDoubleClickBar?.(e, data));
 
       const labelOutsideCutoff = 0.9;
@@ -136,7 +139,7 @@ export const AnalysisBars = ({
             ? x(tox) - x(0) + 5
             : x(tox) - x(0) - 28
         )
-        .call(applyY(() => barHeight / 2 - 6))
+        .call(applyY(groupKey, barHeight / 2 - 6))
         .text(([, tox]) =>
           typeof tox === "number" ? `${tox.toFixed(3).slice(1)}` : "N/A"
         );
@@ -155,8 +158,14 @@ export const AnalysisBars = ({
 
       // Time grid
 
-      const yTime = messageTimeScale(groupKey, y, data);
-      renderTimeGrid(data, yTime, stickiesContainer.current, canvasHeight);
+      const yTime = messageTimeScale(groupKey, data);
+      renderTimeGrid(
+        data,
+        yTime,
+        stickiesContainer.current,
+        canvasHeight,
+        width
+      );
 
       /////////////////////
       // DYNAMIC STYLING //
@@ -355,7 +364,12 @@ export const AnalysisBars = ({
     }
   );
   return (
-    <D3VizComponent filterMargin={barHeight} hidden={hidden} width={width}>
+    <D3VizComponent
+      dataFilter={getDefaultDataFilter(groupKey, barHeight)}
+      hidden={hidden}
+      width={width}
+      dependencies={[isTransitioning]}
+    >
       <Box
         sx={{ position: "fixed", top: 0, pointerEvents: "none" }}
         ref={overlayContainer}

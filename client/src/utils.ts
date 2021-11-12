@@ -33,7 +33,10 @@ export const arrayEqual = (left?: unknown[], right?: unknown[]) => {
   if (!left || !right) return false;
   if (left.length !== right.length) return false;
   for (let i = 0; i < left.length; i++) {
-    if (!shallowEqual(left[i], right[i])) return false;
+    const l = left[i];
+    const r = right[i];
+    if (Array.isArray(l) && Array.isArray(r) && !arrayEqual(l, r)) return false;
+    if (!shallowEqual(l, r)) return false;
   }
   return true;
 };

@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
+import { arrayEqual } from "../utils";
 import type { RootState, AppDispatch } from "./store";
 
 export const useAppDispatch = () => useDispatch<AppDispatch>();
@@ -20,4 +21,10 @@ export const usePreviousValue = <T>(
   valueOnLastRender.current = value;
 
   return previousValue.current;
+};
+
+export const useArray = <T>(array?: T[]) => {
+  const lastArray = useRef(array);
+  if (arrayEqual(array, lastArray.current)) return lastArray.current;
+  else return (lastArray.current = array);
 };

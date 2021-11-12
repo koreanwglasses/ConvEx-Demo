@@ -463,7 +463,7 @@ export const selectLayoutMode = (key: string) => (state: RootState) => {
   return { mode, isTransitioning, prevMode, transitionOffset, layoutKey };
 };
 
-const selectOffsets =
+export const selectOffsets =
   (key: string, mode?: LayoutModes, layoutKey?: string) =>
   (state: RootState) => {
     const layoutMode = selectLayoutMode(key)(state);
