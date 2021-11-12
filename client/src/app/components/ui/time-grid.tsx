@@ -15,37 +15,43 @@ export const renderTimeGrid = (
     new d3.InternSet(
       data
         .map(([msg]) => new Date(msg.createdTimestamp))
-        .map((date) => [d3.timeHour.floor(date), d3.timeDay.floor(date)])
-        .flat()
+        .map((date) => d3.timeHour.floor(date))
     )
   );
 
-  const days = d3.sort(
-    new d3.InternSet(
-      data
-        .map(([msg]) => new Date(msg.createdTimestamp))
-        .map((date) => d3.timeDay.floor(date))
+  const days = new d3.InternSet(
+    hours.filter(
+      (hour, i, array) =>
+        i - 1 < 0 || +d3.timeDay.floor(hour) !== +d3.timeDay.floor(array[i - 1])
     )
   );
-
-  const isDayBoundary = (time: Date) => +d3.timeDay.floor(time) === +time;
 
   ReactDOM.render(
     <>
-      {hours.map(
-        (time, i, array) =>
-          !isDayBoundary(time) && (
-            <TimeLabel
-              array={array}
-              i={i}
-              yTime={yTime}
-              canvasHeight={canvasHeight}
-              format={"%I %p"}
-              stickyTop={15}
-            />
-          )
-      )}
-      {days.map((time, i, array) => (
+      {hours.map((time, i, array) => (
+        <>
+          <Box
+            sx={{
+              position: "absolute",
+              width: 1.0,
+              height: "1px",
+              bgcolor: "rgba(255,255,255,0.1)",
+            }}
+            style={{ top: yTime(time) }}
+          />
+          <TimeLabel
+            array={array}
+            i={i}
+            yTime={yTime}
+            canvasHeight={canvasHeight}
+            format={"%I %p"}
+            stickyTop={15}
+            offset={days.has(time) ? 15 : 0}
+          />
+        </>
+      ))}
+
+      {[...days].map((time, i, array) => (
         <TimeLabel
           array={array}
           i={i}
@@ -53,6 +59,7 @@ export const renderTimeGrid = (
           canvasHeight={canvasHeight}
           format={"%b %e"}
           stickyTop={0}
+          offset={0}
         />
       ))}
     </>,
@@ -67,6 +74,7 @@ const TimeLabel = ({
   canvasHeight,
   format,
   stickyTop,
+  offset,
 }: {
   array: Date[];
   i: number;
@@ -74,25 +82,17 @@ const TimeLabel = ({
   yTime: d3.ScaleTime<number, number>;
   format: string;
   stickyTop: number;
+  offset: number;
 }) => {
   const time = array[i];
   return (
     <>
-      <Box
-        sx={{
-          position: "absolute",
-          width: 1.0,
-          height: "1px",
-          bgcolor: "rgba(255,255,255,0.1)",
-        }}
-        style={{ top: yTime(time) }}
-      />
       <StickyWrapper
-        y={yTime(time)}
+        y={yTime(time) + offset}
         height={
           i + 1 < array.length
-            ? Math.max(yTime(array[i + 1]) - yTime(time) - 18, 0)
-            : canvasHeight - yTime(time)
+            ? Math.max(yTime(array[i + 1]) - yTime(time) - 18 - offset, 0)
+            : canvasHeight - yTime(time) - offset
         }
         stickyTop={stickyTop}
       >

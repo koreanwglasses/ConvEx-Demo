@@ -157,12 +157,7 @@ export const AnalysisBars = ({
       // Time grid
 
       const yTime = messageTimeScale(groupKey, data);
-      renderTimeGrid(
-        data,
-        yTime,
-        stickiesContainer.current,
-        canvasHeight
-      );
+      renderTimeGrid(data, yTime, stickiesContainer.current, canvasHeight);
 
       /////////////////////
       // DYNAMIC STYLING //

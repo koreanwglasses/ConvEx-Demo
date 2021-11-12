@@ -90,12 +90,7 @@ export const ActivityVolume = ({
       //   )
       //   .attr("width", ([, msgs]) => x(msgs.length) - x(0));
 
-      renderTimeGrid(
-        data,
-        yTime,
-        stickiesContainer.current,
-        canvasHeight
-      );
+      renderTimeGrid(data, yTime, stickiesContainer.current, canvasHeight);
 
       // gridG
       //   .attr("class", "grid")
