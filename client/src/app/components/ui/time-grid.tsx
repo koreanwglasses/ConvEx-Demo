@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import ReactDOM from "react-dom";
 import { StickyWrapper } from "./sticky-wrapper";
 import { Box } from "@mui/system";
+import { theme } from "../../app";
 
 export const renderTimeGrid = (
   data: (readonly [MessageData, unknown?])[],
@@ -47,6 +48,7 @@ export const renderTimeGrid = (
                 ? Math.max(yTime(array[i + 1]) - yTime(time) - 18, 0)
                 : canvasHeight - yTime(time)
             }
+            stickyTop={15}
           >
             <Box
               sx={{
@@ -86,8 +88,13 @@ export const renderTimeGrid = (
                 fontSize: 12,
                 position: "absolute",
                 color: "rgba(255,255,255,0.25)",
+                bgcolor: () => {
+                  const c = d3.color(theme.palette.background.paper)!;
+                  c.opacity = 0.75;
+                  return c.formatRgb();
+                },
+                right: 2,
               }}
-              style={{ left: 0.75 * width + 2 }}
             >
               {d3.timeFormat("%b %e")(time)}
             </Box>

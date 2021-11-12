@@ -99,8 +99,6 @@ export const AnalysisBars = ({
       rulerThumb,
       state,
     }) => {
-      console.log("render");
-
       ////////////////
       // BASE GRAPH //
       ////////////////
@@ -371,6 +369,10 @@ export const AnalysisBars = ({
       dependencies={[isTransitioning]}
     >
       <Box
+        ref={stickiesContainer}
+        sx={{ position: "absolute", top: 0, width: 1.0 }}
+      />
+      <Box
         sx={{ position: "fixed", top: 0, pointerEvents: "none" }}
         ref={overlayContainer}
       >
@@ -409,7 +411,6 @@ export const AnalysisBars = ({
           ref={messagePopover}
         ></Card>
       </Box>
-      <Box ref={stickiesContainer} />
     </D3VizComponent>
   );
 };
