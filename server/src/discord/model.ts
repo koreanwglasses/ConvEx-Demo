@@ -18,7 +18,7 @@ import {
   EmbedData,
   AttachmentData,
 } from "../common/api-data-types";
-import client from "./bot";
+import client from "./client";
 
 const toGuildData = (guild: OAuth2Guild | Guild): GuildData =>
   guild && {

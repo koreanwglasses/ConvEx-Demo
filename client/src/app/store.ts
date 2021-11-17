@@ -6,6 +6,7 @@ import guilds from "./data/guilds-slice";
 import channels from "./data/channels-slice";
 import messages from "./data/messages-slice";
 import analyses from "./data/analyses-slice";
+import analysisSummaries from "./data/analysis-summaries-slice";
 import vizScrollers from "./viz-scroller/viz-scroller-slice";
 import channelVizGroups from "./dashboard/channel/channel-viz-group/channel-viz-group-slice";
 
@@ -17,6 +18,7 @@ export const store = configureStore({
     channels,
     messages,
     analyses,
+    analysisSummaries,
     vizScrollers,
     channelVizGroups,
   },

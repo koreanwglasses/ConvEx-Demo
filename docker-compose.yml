@@ -1,0 +1,60 @@
+services:
+  app:
+    image: node:16
+    command: sh -c "yarn && yarn dev"
+    ports:
+      - 3000:3000
+      - 4000:4000
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      DISCORD_BOT_TOKEN_FILE: /run/secrets/discord_bot_token
+      DISCORD_OAUTH_CLIENT_ID: 819042068185874465
+      DISCORD_OAUTH_CLIENT_SECRET_FILE: /run/secrets/discord_oauth_client_secret
+      PERSPECTIVE_API_KEY_FILE: /run/secrets/perspective_api_key
+      HOSTNAME: localhost
+      SESSION_SECRET_FILE: /run/secrets/session_secret
+      DB_HOST: mongo
+      DB_PORT: 27017
+      DB_USER: root
+      DB_PASSWORD: secret
+      DB_NAME: convex
+    secrets:
+      - discord_bot_token
+      - discord_oauth_client_secret
+      - perspective_api_key
+      - session_secret
+
+  mongo:
+    image: mongo:5
+    volumes:
+      - data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: secret
+      MONGO_INITDB_DATABASE: convex
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: secret
+      ME_CONFIG_MONGODB_URL: mongodb://root:secret@mongo:27017/
+  
+secrets:
+  discord_bot_token:
+    file: secrets/discord_bot_token
+  discord_oauth_client_secret:
+    file: secrets/discord_oauth_client_secret
+  perspective_api_key:
+    file: secrets/perspective_api_key
+  session_secret:
+    file: secrets/session_secret
+
+volumes:
+  data:

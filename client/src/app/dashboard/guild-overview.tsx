@@ -5,12 +5,7 @@ import { useAppSelector } from "../hooks";
 import { selectChannels } from "../data/channels-slice";
 import { ChannelCard } from "./channel/channel-card";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  DragDropContext,
-  DropResult,
-  ResponderProvided,
-  Droppable,
-} from "react-beautiful-dnd";
+import { DragDropContext, DropResult, Droppable } from "react-beautiful-dnd";
 import { ChannelData } from "../../common/api-data-types";
 
 const GuildOverview = () => {
@@ -31,7 +26,7 @@ const GuildOverview = () => {
 
   const [dashboard, setDashboard] = useState<ChannelData[]>([]);
 
-  const handleDragEnd = (result: DropResult, provided: ResponderProvided) => {
+  const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
 
     const item = (
@@ -58,6 +53,7 @@ const GuildOverview = () => {
     window.addEventListener("resize", listener);
     return window.removeEventListener("resize", listener);
   }, []);
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (ref.current && ref.current.clientHeight !== height)
@@ -81,7 +77,7 @@ const GuildOverview = () => {
           {channelPalette && guildId && (
             <>
               <Droppable droppableId="channel-palette">
-                {(provided, snapshot) => (
+                {(provided) => (
                   <Box
                     sx={{
                       overflowY: "scroll",
@@ -102,7 +98,9 @@ const GuildOverview = () => {
                           guildId={guildId}
                           halfHeight={height / 2 - 62}
                           fullHeight={height - 73}
-                          defaultDisplayMode="mini"
+                          initialDisplayMode="mini"
+                          initialCharts={["AnalysisSummary"]}
+                          initialLayoutMode="time"
                           index={i}
                         />
                       ))}
@@ -174,8 +172,8 @@ const DashboardDrop = ({
               halfHeight={height / 2 - 54}
               fullHeight={height - 57}
               index={i}
-              defaultExpanded
-              defaultDisplayMode="half"
+              initialExpanded
+              initialDisplayMode="half"
             />
           ))}
 

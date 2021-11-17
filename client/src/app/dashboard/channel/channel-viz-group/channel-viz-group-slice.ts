@@ -1,12 +1,12 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { WritableDraft } from "immer/dist/types/types-external";
-import { MessageData } from "../../../../common/api-data-types";
+import { Interval, MessageData } from "../../../../common/api-data-types";
 import { AppThunk, RootState } from "../../../store";
 import * as MessagesSlice from "../../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../../hooks";
 import { shallowEqual } from "react-redux";
-import { useCallback, useMemo } from "react";
-import { arrayEqual } from "../../../../utils";
+import { useMemo } from "react";
+import { deepEqual, getTimeInterval } from "../../../../utils";
 import {
   adjustScrollTop,
   selectVizScrollerGroup,
@@ -16,7 +16,7 @@ import {
 // STATE //
 ///////////
 
-type LayoutModes = "map" | "compact";
+export type LayoutMode = "map" | "compact" | "time";
 
 type Layouts = Record<
   string,
@@ -24,10 +24,13 @@ type Layouts = Record<
     offsetMap: Record<string, number>;
     offsetTopMap: Record<string, number>;
     offsetBottomMap: Record<string, number>;
-    version: number;
+    offsetMapVersion: number;
 
     m: number;
     b: number;
+
+    baseTime: Date;
+    timeScale: number;
   }
 >;
 
@@ -41,15 +44,20 @@ interface SubState {
   listener?: (message: MessageData) => void;
 
   layouts: Layouts;
-  mode: LayoutModes;
+  mode: LayoutMode;
   layoutKey: string;
 
-  prevMode?: LayoutModes;
+  prevMode?: LayoutMode;
   prevLayoutKey?: string;
   isTransitioning: boolean;
   transitionOffset: number;
 
   toxicityThreshold: number;
+
+  summaryInterval: {
+    interval: Interval;
+    step: number;
+  };
 }
 
 // Define a type for the slice state
@@ -62,10 +70,13 @@ const subLayouts = (layouts: Layouts, layoutKey: string, write = true) => {
     offsetMap: {},
     offsetTopMap: {},
     offsetBottomMap: {},
-    version: 0,
+    offsetMapVersion: 0,
 
     m: -21,
     b: -10,
+
+    baseTime: new Date(Date.now()),
+    timeScale: -32 / (1000 * 60 * 60),
   } as const;
   return (
     layouts[layoutKey] ?? (write ? (layouts[layoutKey] = defaults) : defaults)
@@ -85,6 +96,11 @@ const sub = (state: ChannelVizGroupState, groupKey: string, write = true) => {
     transitionOffset: 0,
 
     toxicityThreshold: 0,
+
+    summaryInterval: {
+      interval: "hour",
+      step: 1,
+    },
   } as const;
   return state[groupKey] ?? (write ? (state[groupKey] = defaults) : defaults);
 };
@@ -150,7 +166,7 @@ export const ChannelVizGroups = createSlice({
       layout.offsetMap[itemKey] = offset;
       layout.offsetTopMap[itemKey] = offsetTop;
       layout.offsetBottomMap[itemKey] = offsetBottom;
-      layout.version++;
+      layout.offsetMapVersion++;
     },
     clearOffsets(state, action: { payload: { groupKey: string } }) {
       const { groupKey } = action.payload;
@@ -161,7 +177,7 @@ export const ChannelVizGroups = createSlice({
         layout.offsetMap = {};
         layout.offsetTopMap = {};
         layout.offsetBottomMap = {};
-        layout.version++;
+        layout.offsetMapVersion++;
       }
     },
     setLayoutKey(
@@ -174,7 +190,7 @@ export const ChannelVizGroups = createSlice({
     setLayoutMode(
       state,
       action: {
-        payload: { groupKey: string; mode: LayoutModes };
+        payload: { groupKey: string; mode: LayoutMode };
       }
     ) {
       const { groupKey: key, mode } = action.payload;
@@ -185,7 +201,7 @@ export const ChannelVizGroups = createSlice({
       action: {
         payload: {
           groupKey: string;
-          mode?: LayoutModes;
+          mode?: LayoutMode;
           layoutKey?: string;
           isTransitioning: boolean;
           transitionOffset?: number;
@@ -225,6 +241,19 @@ export const ChannelVizGroups = createSlice({
       const { groupKey, threshold } = action.payload;
       sub(state, groupKey).toxicityThreshold = threshold;
     },
+    setBaseTime(
+      state,
+      action: {
+        payload: { groupKey: string; layoutKey?: string; baseTime?: Date };
+      }
+    ) {
+      const { groupKey: key, baseTime = new Date(Date.now()) } = action.payload;
+      const { layouts, layoutKey: layoutKey_ } = sub(state, key);
+      const { layoutKey = layoutKey_ } = action.payload;
+
+      const layout = subLayouts(layouts, layoutKey);
+      layout.baseTime = baseTime;
+    },
   },
 });
 
@@ -237,9 +266,17 @@ const {
   setLayoutMode,
   setTransition,
   setThreshold,
+  setBaseTime,
 } = ChannelVizGroups.actions;
 
-export { setOffsets, clearOffsets, setLayoutMode, setLayoutKey, setThreshold };
+export {
+  setOffsets,
+  clearOffsets,
+  setLayoutMode,
+  setLayoutKey,
+  setThreshold,
+  setBaseTime,
+};
 
 /////////////
 // ACTIONS //
@@ -250,12 +287,14 @@ const registerGroup =
     groupKey: string,
     guildId: string,
     channelId: string,
-    initialLayoutKey = "default"
+    initialLayoutKey = "default",
+    initialLayoutMode: LayoutMode = "map"
   ): AppThunk =>
   (dispatch) => {
     dispatch(setProperty({ groupKey, key: "guildId", value: guildId }));
     dispatch(setProperty({ groupKey, key: "channelId", value: channelId }));
     dispatch(setLayoutKey({ groupKey, layoutKey: initialLayoutKey }));
+    dispatch(setLayoutMode({ groupKey, mode: initialLayoutMode }));
   };
 
 export const fetchOlderMessages =
@@ -383,32 +422,34 @@ export const stopStreaming =
 export const transitionLayouts =
   ({
     groupKey,
-    mode,
+    mode: mode_,
     layoutKey,
-    pivot,
+    pivot: pivot_,
     smooth = true,
   }: {
     groupKey: string;
-    mode?: LayoutModes;
+    mode?: LayoutMode;
     layoutKey?: string;
     pivot?: MessageData;
     smooth?: boolean;
   }): AppThunk =>
   (dispatch, getState) => {
+    const mode = mode_ ?? selectLayoutMode(groupKey)(getState()).mode;
+
     const messages = selectMessages(groupKey)(getState());
-    const prevY = selectOffsets(groupKey)(getState());
-    const nextY = selectOffsets(groupKey, mode, layoutKey)(getState());
+    const prevY = selectOffsetFuncs(groupKey)(getState())[mode];
+    const nextY = selectOffsetFuncs(groupKey, layoutKey)(getState())[mode];
     const { clientHeight, scrollTop } = selectVizScrollerGroup(groupKey)(
       getState()
     );
 
-    const pivot_ =
-      pivot ??
+    const pivot =
+      pivot_ ??
       messages?.find(
         (message) => (prevY(message) ?? 0) < scrollTop - clientHeight / 2
       );
 
-    const transitionOffset = pivot_ && nextY(pivot_) - prevY(pivot_);
+    const transitionOffset = pivot && nextY(pivot) - prevY(pivot);
     if (typeof transitionOffset !== "number" || isNaN(transitionOffset)) {
       console.warn("Could not determine transitionOffset. Scrolling to bottom");
       dispatch(adjustScrollTop(groupKey, -scrollTop));
@@ -463,24 +504,55 @@ export const selectLayoutMode = (key: string) => (state: RootState) => {
   return { mode, isTransitioning, prevMode, transitionOffset, layoutKey };
 };
 
-export const selectOffsets =
-  (key: string, mode?: LayoutModes, layoutKey?: string) =>
-  (state: RootState) => {
-    const layoutMode = selectLayoutMode(key)(state);
-    const layoutData = selectLayoutData(key, layoutKey)(state);
-    const messages = selectMessages(key)(state);
+export const selectBaseTime =
+  (groupKey: string, layoutKey?: string) => (state: RootState) => {
+    const { interval, step } = selectSummaryInterval(groupKey)(state);
+    const layoutData = selectLayoutData(groupKey, layoutKey)(state);
+    const timeInterval = getTimeInterval(interval, step);
+    return +timeInterval.ceil(layoutData.baseTime);
+  };
+
+export const selectOffsetFuncs =
+  (groupKey: string, layoutKey?: string) => (state: RootState) => {
+    const layoutData = selectLayoutData(groupKey, layoutKey)(state);
+    const messages = selectMessages(groupKey)(state);
+    const baseTime = selectBaseTime(groupKey, layoutKey)(state);
 
     const offsetFuncs = {
-      map(message: MessageData) {
-        return layoutData.offsetMap[message.id];
-      },
-      compact(message: MessageData) {
-        const i = messages!.indexOf(message);
-        return layoutData.m * i + layoutData.b;
-      },
+      map: Object.assign(
+        function (message: MessageData) {
+          return layoutData.offsetMap[message.id];
+        },
+        {
+          inverse(offset: number): number {
+            throw new Error("Not implemented");
+          },
+        }
+      ),
+      compact: Object.assign(
+        function (message: MessageData) {
+          const i = messages!.indexOf(message);
+          return layoutData.m * i + layoutData.b;
+        },
+        {
+          inverse(offset: number) {
+            return offset - layoutData.b / layoutData.m;
+          },
+        }
+      ),
+      time: Object.assign(
+        function (message: MessageData) {
+          return (message.createdTimestamp - baseTime) * layoutData.timeScale;
+        },
+        {
+          inverse(offset: number) {
+            return offset / layoutData.timeScale + baseTime;
+          },
+        }
+      ),
     };
 
-    return offsetFuncs[mode ?? layoutMode.mode];
+    return offsetFuncs;
   };
 
 export const selectMessages = (key: string) => (state: RootState) => {
@@ -548,51 +620,73 @@ export const selectChannelVizGroup =
     };
   };
 
+export const selectSummaryInterval = (groupKey: string) => (state: RootState) =>
+  sub(state.channelVizGroups, groupKey, false).summaryInterval;
+
 ///////////
 // HOOKS //
 ///////////
 
 export const useOffsets = (
-  key: string,
-  mode?: LayoutModes,
+  groupKey: string,
+  mode?: LayoutMode,
   layoutKey?: string
 ) => {
-  const layoutMode = useAppSelector(selectLayoutMode(key), shallowEqual);
+  const layoutMode = useAppSelector(selectLayoutMode(groupKey), shallowEqual);
   const layoutData = useAppSelector(
-    selectLayoutData(key, layoutKey),
+    selectLayoutData(groupKey, layoutKey),
     shallowEqual
   );
-  const messages = useAppSelector(selectMessages(key), arrayEqual);
-
-  const map = useCallback(
-    (message: MessageData) => layoutData.offsetMap[message.id],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [layoutData.offsetMap, layoutData.version]
+  const messages = useAppSelector(selectMessages(groupKey), deepEqual);
+  const offsetFuncs = useAppSelector(selectOffsetFuncs(groupKey));
+  const summaryInterval = useAppSelector(
+    selectSummaryInterval(groupKey),
+    deepEqual
   );
-  const compact = useCallback(
-    (message: MessageData) => {
-      const i = messages!.indexOf(message);
-      return layoutData.m * i + layoutData.b!;
-    },
+
+  const baseTime = useAppSelector(
+    selectBaseTime(groupKey, layoutKey),
+    deepEqual
+  );
+
+  const map = useMemo(
+    () => offsetFuncs.map,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [layoutData.offsetMapVersion]
+  );
+
+  const compact = useMemo(
+    () => offsetFuncs.compact,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [layoutData.b, layoutData.m, messages]
   );
 
-  const offsetFuncs = useMemo(() => ({ map, compact }), [compact, map]);
+  const time = useMemo(
+    () => offsetFuncs.time,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      baseTime,
+      layoutData.timeScale,
+      summaryInterval.step,
+      summaryInterval.interval,
+    ]
+  );
 
   return useMemo(
-    () => offsetFuncs[mode ?? layoutMode.mode],
-    [offsetFuncs, mode, layoutMode.mode]
+    () => ({ map, compact, time }[mode ?? layoutMode.mode]),
+    [map, compact, time, mode, layoutMode.mode]
   );
 };
 
 export const useMessages = (key: string) =>
-  useAppSelector(selectMessages(key), arrayEqual);
+  useAppSelector(selectMessages(key), deepEqual());
 
 export const useChannelVizGroup = (
   groupKey: string,
   guildId?: string,
   channelId?: string,
-  initialLayoutKey?: string
+  initialLayoutKey?: string,
+  initialLayoutMode?: LayoutMode
 ) => {
   const group = useAppSelector(
     selectChannelVizGroup(groupKey, guildId, channelId),
@@ -600,7 +694,15 @@ export const useChannelVizGroup = (
   );
   const dispatch = useAppDispatch();
   if (!group.isRegistered && guildId && channelId)
-    dispatch(registerGroup(groupKey, guildId, channelId, initialLayoutKey));
+    dispatch(
+      registerGroup(
+        groupKey,
+        guildId,
+        channelId,
+        initialLayoutKey,
+        initialLayoutMode
+      )
+    );
 
   return group;
 };

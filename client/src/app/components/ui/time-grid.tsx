@@ -1,34 +1,74 @@
-import { MessageData } from "../../../common/api-data-types";
 import * as d3 from "d3";
-import ReactDOM from "react-dom";
 import { StickyWrapper } from "./sticky-wrapper";
 import { Box } from "@mui/system";
 import { theme } from "../../app";
+import {
+  useMessagesOnCanvas,
+  useTimeExtent,
+  useTimeScale,
+} from "../../dashboard/channel/d3-viz-hooks";
+import { useAppSelector } from "../../hooks";
+import { shallowEqual } from "react-redux";
+import {
+  selectLayoutMode,
+  selectSummaryInterval,
+} from "../../dashboard/channel/channel-viz-group/channel-viz-group-slice";
+import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
+import { useMemo } from "react";
+import { getTimeInterval, deepEqual } from "../../../utils";
 
-export const renderTimeGrid = (
-  data: (readonly [MessageData, unknown?])[],
-  yTime: d3.ScaleTime<number, number>,
-  container: HTMLElement | null,
-  canvasHeight: number
-) => {
-  const hours = d3.sort(
-    new d3.InternSet(
-      data
-        .map(([msg]) => new Date(msg.createdTimestamp))
-        .map((date) => d3.timeHour.floor(date))
+export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
+  const { mode } = useAppSelector(selectLayoutMode(groupKey), shallowEqual);
+  const { canvasHeight } = useVizScrollerGroup(groupKey);
+  const timeExtent = useTimeExtent(groupKey);
+  const yTime = useTimeScale(groupKey);
+  const data = useMessagesOnCanvas(groupKey);
+
+  const { interval: minorInterval, step } = useAppSelector(
+    selectSummaryInterval(groupKey),
+    deepEqual
+  );
+  const minorTimeInterval = useMemo(
+    () => getTimeInterval(minorInterval, step)!,
+    [minorInterval, step]
+  );
+
+  const majorInterval = (
+    { minute: "hour", hour: "day", day: "month" } as const
+  )[minorInterval];
+  const majorTimeInterval = useMemo(
+    () => getTimeInterval(majorInterval),
+    [majorInterval]
+  );
+
+  const minor =
+    mode === "time"
+      ? timeExtent
+        ? minorTimeInterval.range(
+            new Date(timeExtent[0]),
+            new Date(timeExtent[1])
+          )
+        : []
+      : d3.sort(
+          new d3.InternSet(
+            data
+              ?.map(([msg]) => new Date(msg.createdTimestamp))
+              .map((date) => d3.timeHour.floor(date)) ?? []
+          )
+        );
+
+  const major = new d3.InternSet(
+    minor.filter(
+      (minorTick, i, array) =>
+        i - 1 < 0 ||
+        +majorTimeInterval.floor(minorTick) !==
+          +majorTimeInterval.floor(array[i - 1])
     )
   );
 
-  const days = new d3.InternSet(
-    hours.filter(
-      (hour, i, array) =>
-        i - 1 < 0 || +d3.timeDay.floor(hour) !== +d3.timeDay.floor(array[i - 1])
-    )
-  );
-
-  ReactDOM.render(
+  return (
     <>
-      {hours.map((time, i, array) => (
+      {minor.map((time, i, array) => (
         <>
           <Box
             sx={{
@@ -44,26 +84,25 @@ export const renderTimeGrid = (
             i={i}
             yTime={yTime}
             canvasHeight={canvasHeight}
-            format={"%I %p"}
+            format={minorInterval === "minute" ? "%M:%S" : "%I %p"}
             stickyTop={15}
-            offset={days.has(time) ? 15 : 0}
+            offset={major.has(time) ? 15 : 0}
           />
         </>
       ))}
 
-      {[...days].map((time, i, array) => (
+      {[...major].map((time, i, array) => (
         <TimeLabel
           array={array}
           i={i}
           yTime={yTime}
           canvasHeight={canvasHeight}
-          format={"%b %e"}
+          format={majorInterval === "hour" ? "%I %p" : "%b %e"}
           stickyTop={0}
           offset={0}
         />
       ))}
-    </>,
-    container
+    </>
   );
 };
 

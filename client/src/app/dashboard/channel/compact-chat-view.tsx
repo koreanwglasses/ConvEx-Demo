@@ -6,7 +6,7 @@ import { fetchMember, selectMember } from "../../data/members-slice";
 import {
   useAppDispatch,
   useAppSelector,
-  useArray,
+  useDeepMemo,
   usePreviousValue,
 } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
@@ -21,11 +21,11 @@ import {
 } from "./channel-viz-group/channel-viz-group-slice";
 import { useGroupKey } from "./channel-viz-group/channel-viz-group";
 import { shallowEqual } from "react-redux";
-import { arrayEqual } from "../../../utils";
 import {
   CompactMessageGroupBase,
   CompactMessageViewBase,
 } from "../../components/ui/compact-chat-view-base";
+import { deepEqual } from "../../../utils";
 
 export const CompactChatView = ({
   hidden = false,
@@ -45,7 +45,7 @@ export const CompactChatView = ({
   const offsets = useOffsets(groupKey);
 
   // Only rendering default messages and replies for now
-  const messagesToRender = useArray(
+  const messagesToRender = useDeepMemo(
     useMemo(() => {
       if (!messages) return;
 
@@ -241,7 +241,7 @@ const CompactMessageGroup = ({
   }, [isValid, pending, dispatch, memberId, guildId]);
 
   // check toxicity of messages to see if avatar and icon should fade
-  const analyses = useAppSelector(selectBatchAnalysis(messages), arrayEqual);
+  const analyses = useAppSelector(selectBatchAnalysis(messages), deepEqual);
   const threshold = useAppSelector(selectThreshold(groupKey));
 
   return (

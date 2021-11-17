@@ -2,7 +2,8 @@ import { User } from "discord.js";
 import { Router } from "express";
 import expressAsyncHandler from "express-async-handler";
 import { hasModeratorAccess, requireAuthenticated } from "../oauth/helpers";
-import { analyzeMessage } from "./model";
+import { analyzeMessage } from "./perspective-model";
+import BackgroundAnalysisRouter from "./background-analyzer/router";
 
 const router = Router();
 
@@ -26,5 +27,7 @@ router.post(
     res.send(analyses);
   })
 );
+
+router.use("/analyzer", BackgroundAnalysisRouter);
 
 export default router;

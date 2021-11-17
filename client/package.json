@@ -61,6 +61,7 @@
   "devDependencies": {
     "@types/d3": "^7.1.0",
     "@types/react-beautiful-dnd": "^13.1.2",
+    "discord.js": "^13.3.1",
     "http-proxy-middleware": "^2.0.1",
     "prettier": "^2.4.1",
     "redux-devtools": "^3.7.0"

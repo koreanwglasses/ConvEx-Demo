@@ -29,21 +29,25 @@ import {
 import { AnalysisBars } from "./analysis-bars";
 import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
 import {
+  LayoutMode,
   selectLayoutMode,
   transitionLayouts,
 } from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
 import { Draggable } from "react-beautiful-dnd";
-import { ActivityVolume } from "./activity-volume";
+import { AnalysisSummary } from "./analysis-summary";
 
+type ChartType = "CompactChatView" | "AnalysisBars" | "AnalysisSummary";
 export const ChannelCard = ({
   channelId,
   guildId,
   halfHeight,
   fullHeight,
   miniHeight = halfHeight * 0.75,
-  defaultDisplayMode = "half",
-  defaultExpanded = false,
+  initialDisplayMode = "half",
+  initialExpanded = false,
+  initialCharts = ["CompactChatView"],
+  initialLayoutMode = "map",
   index,
 }: {
   channelId: string;
@@ -51,9 +55,11 @@ export const ChannelCard = ({
   miniHeight?: number;
   halfHeight: number;
   fullHeight: number;
-  defaultDisplayMode?: "mini" | "half" | "full";
+  initialDisplayMode?: "mini" | "half" | "full";
+  initialCharts?: ChartType[];
+  initialLayoutMode?: LayoutMode;
   index: number;
-  defaultExpanded?: boolean;
+  initialExpanded?: boolean;
 }) => {
   const groupKey = `${channelId}`;
 
@@ -69,13 +75,13 @@ export const ChannelCard = ({
   );
 
   const [loaded, setLoaded] = useState(false);
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [expanded, setExpanded] = useState(initialExpanded);
   useEffect(() => {
     if (expanded && !loaded) setLoaded(true);
   }, [expanded, loaded]);
 
-  const [displayMode, setDisplayMode] = useState(defaultDisplayMode);
-  const chartWidth = { mini: 200, half: 300, full: 400 }[displayMode];
+  const [displayMode, setDisplayMode] = useState(initialDisplayMode);
+  const chartWidth = { mini: 220, half: 300, full: 400 }[displayMode];
   const chartHeight = { mini: miniHeight, half: halfHeight, full: fullHeight }[
     displayMode
   ];
@@ -99,8 +105,7 @@ export const ChannelCard = ({
     );
   };
 
-  type ChartType = "CompactChatView" | "AnalysisBars" | "ActivityVolume";
-  const [charts, setCharts] = useState<ChartType[]>(["CompactChatView"]);
+  const [charts, setCharts] = useState<ChartType[]>(initialCharts);
 
   const handleChartChanged = (
     e: unknown,
@@ -140,9 +145,9 @@ export const ChannelCard = ({
             display: "flex",
             flexDirection: "column",
             justifyContent: "flex-start",
-            minWidth: chartWidth + 36,
+            minWidth: displayMode === "mini" ? undefined : chartWidth + 36,
             overflowX: displayMode === "mini" ? "clip" : undefined,
-            width: displayMode === "mini" ? chartWidth + 36 : undefined,
+            width: displayMode === "mini" ? chartWidth : undefined,
             height: "fit-content",
           }}
           ref={provided.innerRef}
@@ -201,42 +206,45 @@ export const ChannelCard = ({
             }}
             elevation={0}
           >
-            <CustomDrawer>
-              <ToggleButtonGroup
-                orientation="vertical"
-                value={charts}
-                onChange={handleChartChanged}
-              >
-                <ToggleButton
-                  value="CompactChatView"
-                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+            {displayMode !== "mini" && (
+              <CustomDrawer>
+                <ToggleButtonGroup
+                  orientation="vertical"
+                  value={charts}
+                  onChange={handleChartChanged}
                 >
-                  <Feed sx={{ mr: 1 }} />
-                  Chat
-                </ToggleButton>
-                <ToggleButton
-                  value="AnalysisBars"
-                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
-                >
-                  <BarChart sx={{ mr: 1 }} />
-                  Toxicity Analysis
-                </ToggleButton>{" "}
-                <ToggleButton
-                  value="ActivityVolume"
-                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
-                >
-                  <BarChart sx={{ mr: 1 }} />
-                  Activity
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </CustomDrawer>
+                  <ToggleButton
+                    value="CompactChatView"
+                    sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+                  >
+                    <Feed sx={{ mr: 1 }} />
+                    Chat
+                  </ToggleButton>
+                  <ToggleButton
+                    value="AnalysisBars"
+                    sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+                  >
+                    <BarChart sx={{ mr: 1 }} />
+                    Toxicity Analysis
+                  </ToggleButton>
+                  <ToggleButton
+                    value="AnalysisSummary"
+                    sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+                  >
+                    <BarChart sx={{ mr: 1 }} />
+                    Activity
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </CustomDrawer>
+            )}
             <Box>
               {loaded && (
                 <ChannelVizGroup
                   guildId={guildId}
                   channelId={channelId}
                   groupKey={groupKey}
-                  initialLayoutKey={defaultDisplayMode}
+                  initialLayoutKey={initialDisplayMode}
+                  initialLayoutMode={initialLayoutMode}
                 >
                   <CompactChatView
                     width={chartWidth}
@@ -257,11 +265,11 @@ export const ChannelCard = ({
                     )}
                   </TransitionContainer>
                   <TransitionContainer
-                    mounted={charts.includes("ActivityVolume")}
+                    mounted={charts.includes("AnalysisSummary")}
                     delay={500}
                   >
                     {(hidden) => (
-                      <ActivityVolume width={chartWidth} hidden={hidden} />
+                      <AnalysisSummary width={chartWidth} hidden={hidden} />
                     )}
                   </TransitionContainer>
                 </ChannelVizGroup>

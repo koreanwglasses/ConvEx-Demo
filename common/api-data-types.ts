@@ -47,3 +47,25 @@ export interface AttachmentData {}
 export interface AnalysisData {
   overallToxicity: number;
 }
+
+export type Interval = "minute" | "hour" | "day";
+export interface AnalysisSummary {
+  guildId: string;
+  channelId: string;
+  timeInterval: {
+    start: number;
+    interval: Interval;
+    step: number;
+  };
+  summary: {
+    totalMessages: number;
+    toxicity: {
+      n: number;
+      mean: number;
+      variance: number;
+      median: number;
+      min: number;
+      max: number;
+    };
+  };
+}

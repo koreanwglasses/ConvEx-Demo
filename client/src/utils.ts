@@ -1,5 +1,6 @@
 import { to } from "await-to-js";
-import { shallowEqual } from "react-redux";
+import * as d3 from "d3";
+import { Interval } from "./common/api-data-types";
 
 const removeUndefined = (obj: any) => {
   return Object.fromEntries(
@@ -28,15 +29,47 @@ export const fetchJSON = async <T = any>(url: string, body?: any) => {
   return [null, result as T] as const;
 };
 
-export const arrayEqual = (left?: unknown[], right?: unknown[]) => {
-  if (left === right) return true;
-  if (!left || !right) return false;
-  if (left.length !== right.length) return false;
-  for (let i = 0; i < left.length; i++) {
-    const l = left[i];
-    const r = right[i];
-    if (Array.isArray(l) && Array.isArray(r) && !arrayEqual(l, r)) return false;
-    if (!shallowEqual(l, r)) return false;
+function deepEqual_(left: unknown, right: unknown, depth = 10) {
+  if (depth < 0) throw new Error("Reached maximum depth");
+
+  if (Object.is(left, right)) return true;
+  if (typeof left !== "object" || typeof right !== "object") return false;
+  if (left === null || right === null) return false;
+
+  const leftEntries = Object.entries(left);
+  const rightKeys = Object.keys(right);
+
+  if (leftEntries.length !== rightKeys.length) return false;
+
+  for (const [key, value] of leftEntries) {
+    if (
+      !(key in right) ||
+      !deepEqual_(value, (right as Record<string, unknown>)[key], depth - 1)
+    )
+      return false;
   }
+
   return true;
-};
+}
+
+export function deepEqual(
+  depth?: number
+): (left: unknown, right: unknown) => boolean;
+export function deepEqual(left: unknown, right: unknown): boolean;
+export function deepEqual(depth_left?: number | unknown, right?: unknown) {
+  if (arguments.length <= 1) {
+    const depth = depth_left as number | undefined;
+    return (left: unknown, right: unknown) => deepEqual_(left, right, depth);
+  } else {
+    const left = depth_left as unknown;
+    return deepEqual_(left, right);
+  }
+}
+
+export const getTimeInterval = (interval: Interval | "month", step = 1) =>
+  ({
+    minute: d3.timeMinute,
+    hour: d3.timeHour,
+    day: d3.timeDay,
+    month: d3.timeMonth,
+  }[interval].every(step) as d3.TimeInterval);

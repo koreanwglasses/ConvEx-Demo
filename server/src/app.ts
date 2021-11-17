@@ -8,6 +8,9 @@ import config from "./config";
 import passport from "passport";
 import { setupPassport } from "./oauth/middlewares";
 import { resolve } from "path";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
@@ -43,9 +46,9 @@ app.get("/invite", (req, res) => {
 app.use("/api", DiscordRouter);
 app.use("/api", AnalysisRouter);
 
-app.use(express.static(resolve(__dirname, "client/build")));
+app.use(express.static(resolve(__dirname, "../public")));
 app.get("*", (req, res) => {
-  res.sendFile(resolve(__dirname, "client/build/index.html"));
+  res.sendFile(resolve(__dirname, "../public/index.html"));
 });
 
 export default app;
