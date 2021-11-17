@@ -3,7 +3,6 @@ import DiscordRouter from "./discord/router";
 import AnalysisRouter from "./analysis/router";
 import AuthRouter from "./oauth/router";
 import session from "express-session";
-import createMemoryStore from "memorystore";
 import config from "./config";
 import passport from "passport";
 import { setupPassport } from "./oauth/middlewares";
@@ -11,6 +10,7 @@ import { resolve } from "path";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
+import { store } from "./database";
 
 const app = express();
 
@@ -20,9 +20,8 @@ const app = express();
 
 app.use(express.json());
 
-const MemoryStore = createMemoryStore(session);
 export const sessionMiddleware = session({
-  store: new MemoryStore({ checkPeriod: 86400000 }),
+  store,
   secret: config.server.sessionSecret,
   resave: false,
   saveUninitialized: false,

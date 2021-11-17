@@ -1,5 +1,7 @@
 import config from "./config";
 import mongoose from "mongoose";
+import session from "express-session";
+import MongoDBStore from "connect-mongodb-session";
 
 const uri =
   `mongodb://${config.database.user}:${config.database.password}` +
@@ -14,3 +16,8 @@ export async function init() {
     console.error("Could not connect to database.");
   }
 }
+
+export const store = new (MongoDBStore(session))({
+  uri,
+  collection: "sessions",
+});
