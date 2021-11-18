@@ -1,4 +1,4 @@
-import * as d3 from "d3";
+import * as d3 from "d3-time";
 
 export const getTimeInterval = (unit: "minute" | "hour" | "day", step = 1) =>
   ({
