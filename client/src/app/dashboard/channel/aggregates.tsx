@@ -41,8 +41,8 @@ export const AnalysisSummary = ({
 
     return {
       svg,
-       bars1G,
-       bars2G,
+      bars1G,
+      bars2G,
       gridG,
       nowG,
       state: {
@@ -58,7 +58,11 @@ export const AnalysisSummary = ({
         // BASE GRAPH //
         ////////////////
 
-        const x = d3.scaleLinear().domain([0, Math.max(5, ...data.map(d=>d.numMessages + 1))]).nice().range([0, width]);
+        const x = d3
+          .scaleLinear()
+          .domain([0, Math.max(5, ...data.map((d) => d.numMessages + 1))])
+          .nice()
+          .range([0, width]);
         gridG
           .attr("class", "grid")
           .attr("transform", `translate(0, ${canvasHeight})`)

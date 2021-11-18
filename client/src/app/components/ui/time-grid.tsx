@@ -29,7 +29,7 @@ export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
     deepEqual
   );
   const minorInterval = useMemo(
-    () => getTimeInterval(minorUnit, 3*step),
+    () => getTimeInterval(minorUnit, 3 * step),
     [minorUnit, step]
   );
 

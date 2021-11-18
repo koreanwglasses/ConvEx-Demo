@@ -37,8 +37,10 @@ export const analyzeMessage = async (
       messageId,
     },
     {
-      createdTimestamp: message.createdTimestamp,
-      analyses: [{ timestamp: message.createdTimestamp }],
+      $setOnInsert: {
+        createdTimestamp: message.createdTimestamp,
+        analyses: [{ timestamp: message.createdTimestamp }],
+      },
     },
     { upsert: true, new: true }
   ).exec();
