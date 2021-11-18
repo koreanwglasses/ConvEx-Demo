@@ -1,0 +1,6 @@
+{
+  "type": "module",
+  "devDependencies": {
+    "discord.js": "^13.3.1"
+  }
+}

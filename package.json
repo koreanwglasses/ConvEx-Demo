@@ -9,15 +9,13 @@
   "main": "server/dist/index.js",
   "type": "module",
   "scripts": {
-    "prepare": "yarn --cwd client && yarn --cwd server",
+    "prepare": "yarn --cwd common && yarn --cwd client && yarn --cwd server",
     "dev": "concurrently \"yarn --cwd client start\" \"yarn --cwd server dev\"",
-    "format": "yarn --cwd client format && yarn --cwd server format",
-    "build": "yarn --cwd cient && yarn --cwd server"
+    "format": "prettier -w common && yarn --cwd client format && yarn --cwd server format",
+    "build": "yarn --cwd client build && yarn --cwd server build"
   },
   "devDependencies": {
     "concurrently": "^6.3.0",
-    "d3": "^7.1.1",
-    "d3-time": "^3.0.0",
-    "discord.js": "^13.3.1"
+    "prettier": "^2.4.1"
   }
 }

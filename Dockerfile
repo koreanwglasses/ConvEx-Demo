@@ -2,8 +2,8 @@ FROM node:16 as build-client
 WORKDIR /app/client
 COPY client/package.json client/yarn.lock ./
 RUN yarn
-COPY client/public public
 COPY client/tsconfig.json ./
+COPY client/public public
 COPY client/src src
 COPY common src/common
 RUN yarn build
