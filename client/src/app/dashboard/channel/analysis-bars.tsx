@@ -11,7 +11,6 @@ import {
 import {
   useMessagesOnCanvas as useVisibleMessages,
   useSetYWithTransition,
-  useTimeScale,
 } from "./d3-viz-hooks";
 import ReactDOM from "react-dom";
 import { CompactMessageGroupBase } from "../../components/ui/compact-chat-view-base";
@@ -50,7 +49,6 @@ export const AnalysisBars = ({
   const messagePopover = useRef<HTMLDivElement>(null);
 
   const data = useVisibleMessages(groupKey);
-  const scaleTime = useTimeScale(groupKey);
   const setY = useSetYWithTransition(groupKey);
 
   const initialize = useCallback(
@@ -94,10 +92,8 @@ export const AnalysisBars = ({
   const draw = useMemo(
     () =>
       drawCallback(
-        data,
         initialize,
         ({
-          data,
           svg,
           barsG,
           labelsG,
@@ -107,6 +103,8 @@ export const AnalysisBars = ({
           rulerThumb,
           state,
         }) => {
+          if (!data) return;
+
           ////////////////
           // BASE GRAPH //
           ////////////////
@@ -376,14 +374,12 @@ export const AnalysisBars = ({
       // onDoubleClickBar,
       setY,
       width,
-      scaleTime,
     ]
   );
 
   return (
     <D3Viz
       groupKey={groupKey}
-      data={data}
       initialize={initialize}
       draw={draw}
       hidden={hidden}

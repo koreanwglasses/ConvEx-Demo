@@ -3,10 +3,6 @@ import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import { usePreviousValue } from "../../hooks";
 import { VizScroller } from "../../viz-scroller/viz-scroller";
 
-type DrawArgs<Datum> = {
-  data: Datum[];
-};
-
 /**
  * Helper function for D3Viz component that allows for type inference between
  * initialize and draw while memoizing the draw function.
@@ -14,34 +10,31 @@ type DrawArgs<Datum> = {
  * Maybe in the future, React can infer the correct type for the useCallback
  * argument based on assignment, and this function won't be neccessary.
  */
-export const drawCallback = <Datum, Selections extends Record<string, unknown>>(
-  data: Datum[] | undefined,
+export const drawCallback = <Selections extends Record<string, unknown>>(
   initialize: (svgRef: SVGSVGElement) => Selections,
-  draw: (args: DrawArgs<Datum> & Selections) => void
+  draw: (selections: Selections) => void
 ) => {
   return draw;
 };
 
-type Props<Datum, Selections> = React.PropsWithChildren<{
+type Props<Selections> = React.PropsWithChildren<{
   groupKey: string;
-  data?: Datum[];
   initialize: (svgRef: SVGSVGElement) => Selections;
-  draw: (args: DrawArgs<Datum> & Selections) => void;
+  draw: (selections: Selections) => void;
   width: number;
   hidden?: boolean;
   before?: React.ReactNode;
 }>;
 
-export const D3Viz = <Datum, Selections extends Record<string, unknown>>({
+export const D3Viz = <Selections extends Record<string, unknown>>({
   groupKey,
-  data,
   initialize,
   draw,
   width,
   hidden = false,
   before,
   children,
-}: Props<Datum, Selections>) => {
+}: Props<Selections>) => {
   ////////////
   // LAYOUT //
   ////////////
@@ -63,19 +56,15 @@ export const D3Viz = <Datum, Selections extends Record<string, unknown>>({
   }, [offset]);
 
   useEffect(() => {
-    if (!data) return;
     if (!selections.current) {
       if (!svgRef.current) return;
       selections.current = initialize(svgRef.current);
     }
 
-    draw({
-      data,
-      ...selections.current,
-    });
+    draw(selections.current);
 
     svgRef.current?.style.setProperty("top", "0");
-  }, [offset, data, draw, initialize]);
+  }, [offset, draw, initialize]);
 
   const prevWidth = usePreviousValue(width);
 

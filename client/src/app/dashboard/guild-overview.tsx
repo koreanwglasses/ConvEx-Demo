@@ -7,6 +7,7 @@ import { ChannelCard } from "./channel/channel-card";
 import React, { useEffect, useRef, useState } from "react";
 import { DragDropContext, DropResult, Droppable } from "react-beautiful-dnd";
 import { ChannelData } from "../../common/api-data-types";
+import { ChannelThumbnail } from "./channel/channel-thumbnail";
 
 const GuildOverview = () => {
   const { guildId } = useParams();
@@ -42,6 +43,11 @@ const GuildOverview = () => {
       dashboard.splice(result.destination.index, 0, item);
       setDashboard([...dashboard]);
     }
+  };
+
+  const handlePopOut = (index: number) => {
+    const item = channelPalette!.splice(index, 1)[0];
+    setDashboard([...dashboard, item]);
   };
 
   const [height, setHeight] = useState<number>();
@@ -82,26 +88,24 @@ const GuildOverview = () => {
                     sx={{
                       overflowY: "scroll",
                       display: "flex",
-                      flexDirection: "column",
-                      gap: 1,
+                      flexDirection: "row",
+                      flexWrap: "wrap",
+                      gap: 0.75,
                       p: 1,
                       flexShrink: 0,
+                      width: 339,
                     }}
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                   >
                     {typeof height === "number" &&
                       channelPalette.map((channel, i) => (
-                        <ChannelCard
-                          key={channel.id}
-                          channelId={channel.id}
+                        <ChannelThumbnail
                           guildId={guildId}
-                          halfHeight={height / 2 - 62}
-                          fullHeight={height - 73}
-                          initialDisplayMode="mini"
-                          initialCharts={["AnalysisSummary"]}
-                          initialLayoutMode="time"
+                          channelId={channel.id}
                           index={i}
+                          onPopOut={handlePopOut}
+                          key={channel.id}
                         />
                       ))}
                     {provided.placeholder}
@@ -172,7 +176,6 @@ const DashboardDrop = ({
               halfHeight={height / 2 - 54}
               fullHeight={height - 57}
               index={i}
-              initialExpanded
               initialDisplayMode="half"
             />
           ))}

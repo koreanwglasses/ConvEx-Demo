@@ -36,7 +36,7 @@ export const AnalysisSummary = ({
     deepEqual
   );
 
-  const [start, end] = useTimeExtent(groupKey) as [number, number];
+  const [start, end] = (useTimeExtent(groupKey) ?? []) as [number, number];
   const data = useAnalysisSummaries(guildId, channelId, start, end)[
     interval as "hour" | "minute"
   ];
@@ -75,9 +75,8 @@ export const AnalysisSummary = ({
   const draw = useMemo(
     () =>
       drawCallback(
-        data,
         initialize,
-        ({ data, barsG, errorBarsG, gridG, labelsG, nowG, state }) => {
+        ({ barsG, errorBarsG, gridG, labelsG, nowG, state }) => {
           ////////////////
           // BASE GRAPH //
           ////////////////
@@ -204,7 +203,6 @@ export const AnalysisSummary = ({
   return (
     <D3Viz
       groupKey={groupKey}
-      data={data}
       initialize={initialize}
       draw={draw}
       hidden={hidden}

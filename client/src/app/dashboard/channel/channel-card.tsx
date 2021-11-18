@@ -2,8 +2,6 @@ import {
   Add,
   BarChart,
   CloseFullscreen,
-  ExpandLess,
-  ExpandMore,
   Feed,
   OpenInFull,
 } from "@mui/icons-material";
@@ -43,9 +41,8 @@ export const ChannelCard = ({
   guildId,
   halfHeight,
   fullHeight,
-  miniHeight = halfHeight * 0.75,
   initialDisplayMode = "half",
-  initialExpanded = false,
+  initialExpanded = true,
   initialCharts = ["CompactChatView"],
   initialLayoutMode = "map",
   index,
@@ -55,7 +52,7 @@ export const ChannelCard = ({
   miniHeight?: number;
   halfHeight: number;
   fullHeight: number;
-  initialDisplayMode?: "mini" | "half" | "full";
+  initialDisplayMode?: "half" | "full";
   initialCharts?: ChartType[];
   initialLayoutMode?: LayoutMode;
   index: number;
@@ -81,10 +78,8 @@ export const ChannelCard = ({
   }, [expanded, loaded]);
 
   const [displayMode, setDisplayMode] = useState(initialDisplayMode);
-  const chartWidth = { mini: 220, half: 300, full: 400 }[displayMode];
-  const chartHeight = { mini: miniHeight, half: halfHeight, full: fullHeight }[
-    displayMode
-  ];
+  const chartWidth = { mini: 150, half: 300, full: 400 }[displayMode];
+  const chartHeight = { half: halfHeight, full: fullHeight }[displayMode];
   useEffect(() => {
     if (chartHeight !== clientHeight) {
       dispatch(setClientHeight({ key: groupKey, height: chartHeight }));
@@ -112,7 +107,7 @@ export const ChannelCard = ({
     value: ChartType[],
     pivot?: MessageData
   ) => {
-    const newCharts = displayMode === "mini" ? value.slice(-1) : value;
+    const newCharts = value;
 
     const wasChatOpen = charts.includes("CompactChatView");
     const isChatOpen = newCharts.includes("CompactChatView");
@@ -145,9 +140,7 @@ export const ChannelCard = ({
             display: "flex",
             flexDirection: "column",
             justifyContent: "flex-start",
-            minWidth: displayMode === "mini" ? undefined : chartWidth + 36,
-            overflowX: displayMode === "mini" ? "clip" : undefined,
-            width: displayMode === "mini" ? chartWidth : undefined,
+            minWidth: chartWidth + 36,
             height: "fit-content",
           }}
           ref={provided.innerRef}
@@ -169,29 +162,20 @@ export const ChannelCard = ({
                 sx={{
                   m: 1,
                   fontSize: 16,
-                  width: chartWidth - 52,
+                  width: chartWidth - 35,
                 }}
               >
                 #{channel && channel.name}
               </Typography>
             </Box>
-            {displayMode === "mini" && (
-              <ButtonBase
-                sx={{ width: 36 }}
-                onClick={() => setExpanded(!expanded)}
-              >
-                {expanded ? <ExpandLess /> : <ExpandMore />}
-              </ButtonBase>
-            )}
-            {(displayMode === "full" || displayMode === "half") && (
-              <ButtonBase sx={{ width: 36 }} onClick={handleToggleMaximized}>
-                {displayMode === "full" ? (
-                  <CloseFullscreen fontSize="small" />
-                ) : (
-                  <OpenInFull fontSize="small" />
-                )}
-              </ButtonBase>
-            )}
+
+            <ButtonBase sx={{ width: 36 }} onClick={handleToggleMaximized}>
+              {displayMode === "full" ? (
+                <CloseFullscreen fontSize="small" />
+              ) : (
+                <OpenInFull fontSize="small" />
+              )}
+            </ButtonBase>
           </Box>
 
           <Paper
@@ -206,37 +190,35 @@ export const ChannelCard = ({
             }}
             elevation={0}
           >
-            {displayMode !== "mini" && (
-              <CustomDrawer>
-                <ToggleButtonGroup
-                  orientation="vertical"
-                  value={charts}
-                  onChange={handleChartChanged}
+            <CustomDrawer>
+              <ToggleButtonGroup
+                orientation="vertical"
+                value={charts}
+                onChange={handleChartChanged}
+              >
+                <ToggleButton
+                  value="CompactChatView"
+                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
                 >
-                  <ToggleButton
-                    value="CompactChatView"
-                    sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
-                  >
-                    <Feed sx={{ mr: 1 }} />
-                    Chat
-                  </ToggleButton>
-                  <ToggleButton
-                    value="AnalysisBars"
-                    sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
-                  >
-                    <BarChart sx={{ mr: 1 }} />
-                    Toxicity Analysis
-                  </ToggleButton>
-                  <ToggleButton
-                    value="AnalysisSummary"
-                    sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
-                  >
-                    <BarChart sx={{ mr: 1 }} />
-                    Activity
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </CustomDrawer>
-            )}
+                  <Feed sx={{ mr: 1 }} />
+                  Chat
+                </ToggleButton>
+                <ToggleButton
+                  value="AnalysisBars"
+                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+                >
+                  <BarChart sx={{ mr: 1 }} />
+                  Toxicity Analysis
+                </ToggleButton>
+                <ToggleButton
+                  value="AnalysisSummary"
+                  sx={{ border: 0, borderRadius: 0, justifyContent: "left" }}
+                >
+                  <BarChart sx={{ mr: 1 }} />
+                  Activity
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </CustomDrawer>
             <Box>
               {loaded && (
                 <ChannelVizGroup
