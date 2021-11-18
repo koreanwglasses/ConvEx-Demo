@@ -13,7 +13,7 @@ import { useCallback, useMemo } from "react";
 import { selectBatchAnalysis } from "../../data/analyses-slice";
 import { deepEqual } from "../../../utils";
 
-export type Datum = readonly [MessageData, number | undefined];
+export type Datum = readonly [MessageData, number | null | undefined];
 
 export const useY = (groupKey: string) => {
   const offsets = useOffsets(groupKey);
@@ -88,14 +88,7 @@ export const useSetYWithTransition = (groupKey: string) => {
 
   return useCallback(
     (offsetY: number | ((datum: Datum) => number), targetAttr = "y") =>
-      (
-        sel: d3.Selection<
-          any,
-          readonly [MessageData, number | undefined],
-          any,
-          unknown
-        >
-      ) => {
+      (sel: d3.Selection<any, Datum, any, unknown>) => {
         const offset = (datum: Datum) =>
           typeof offsetY === "number" ? offsetY : offsetY(datum);
 

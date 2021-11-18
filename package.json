@@ -16,6 +16,8 @@
   },
   "devDependencies": {
     "concurrently": "^6.3.0",
+    "d3": "^7.1.1",
+    "d3-time": "^3.0.0",
     "discord.js": "^13.3.1"
   }
 }

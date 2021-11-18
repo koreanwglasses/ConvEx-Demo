@@ -9,6 +9,7 @@ import {
   setThreshold,
 } from "./channel-viz-group/channel-viz-group-slice";
 import {
+  Datum,
   useMessagesOnCanvas as useVisibleMessages,
   useSetYWithTransition,
 } from "./d3-viz-hooks";
@@ -30,7 +31,7 @@ export const AnalysisBars = ({
   width?: number;
   onDoubleClickBar?: (
     event: MouseEvent,
-    data: readonly [MessageData, number | undefined]
+    data: readonly [MessageData, number | undefined | null]
   ) => void;
 }) => {
   const groupKey = useGroupKey();
@@ -167,10 +168,8 @@ export const AnalysisBars = ({
           /////////////////////
 
           const setOpacity = () => {
-            const opacity = ([, tox]: readonly [
-              MessageData,
-              number | undefined
-            ]) => (typeof tox === "number" && tox < state.threshold ? 0.4 : 1);
+            const opacity = ([, tox]: Datum) =>
+              typeof tox === "number" && tox < state.threshold ? 0.4 : 1;
 
             bars.attr("opacity", opacity);
             labels.attr("opacity", opacity);
@@ -313,10 +312,7 @@ export const AnalysisBars = ({
           // POPOVER //
           /////////////
 
-          const mouseenter = (
-            e: MouseEvent,
-            [message, tox]: readonly [MessageData, number | undefined]
-          ) => {
+          const mouseenter = (e: MouseEvent, [message, tox]: Datum) => {
             if (!messagePopover.current) return;
 
             const { member } = selectMember(
@@ -332,7 +328,12 @@ export const AnalysisBars = ({
                     pending: false,
                     valid: true,
                     analysis:
-                      typeof tox === "number" ? { overallToxicity: tox } : null,
+                      typeof tox === "number"
+                        ? {
+                            timestamp: message.createdTimestamp,
+                            overallToxicity: tox,
+                          }
+                        : null,
                   },
                 ]}
                 threshold={0}

@@ -34,7 +34,7 @@ export interface MessageData {
   content: string;
   cleanContent: string;
   createdTimestamp: number;
-  editTimestamp: number;
+  editTimestamp: number | null;
   authorId: string;
   type: MessageType;
   embeds: EmbedData[];
@@ -45,27 +45,18 @@ export interface EmbedData {}
 export interface AttachmentData {}
 
 export interface AnalysisData {
-  overallToxicity: number;
+  timestamp: number;
+  overallToxicity?: number | null;
 }
 
-export type Interval = "minute" | "hour" | "day";
-export interface AnalysisSummary {
-  guildId: string;
-  channelId: string;
-  timeInterval: {
+export interface AggregateData {
+  timespan: {
     start: number;
-    interval: Interval;
-    step: number;
+    end: number;
   };
-  summary: {
-    totalMessages: number;
-    toxicity: {
-      n: number;
-      mean: number;
-      variance: number;
-      median: number;
-      min: number;
-      max: number;
-    };
+  numMessages: number;
+  toxicity: {
+    numOverThreshold: number;
+    numUnknown: number;
   };
 }

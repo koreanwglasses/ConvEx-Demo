@@ -2,6 +2,8 @@ import config from "./config";
 import mongoose from "mongoose";
 import session from "express-session";
 import MongoDBStore from "connect-mongodb-session";
+import mongooseLong from "mongoose-long";
+mongooseLong(mongoose);
 
 const uri =
   `mongodb://${config.database.user}:${config.database.password}` +

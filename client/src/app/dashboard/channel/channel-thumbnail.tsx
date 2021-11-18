@@ -11,7 +11,7 @@ import {
 } from "../../viz-scroller/viz-scroller-slice";
 import { ChannelVizGroup } from "./channel-viz-group/channel-viz-group";
 import { Draggable } from "react-beautiful-dnd";
-import { AnalysisSummary } from "./analysis-summary";
+import { AnalysisSummary } from "./aggregates";
 
 export const ChannelThumbnail = ({
   channelId,

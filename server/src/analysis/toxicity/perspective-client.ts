@@ -1,5 +1,5 @@
 import Perspective from "perspective-api-client";
-import config from "../config";
+import config from "../../config";
 
 export let perspective: Perspective;
 

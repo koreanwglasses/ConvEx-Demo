@@ -1,9 +1,13 @@
 import { User } from "discord.js";
 import { Router } from "express";
 import expressAsyncHandler from "express-async-handler";
-import { hasModeratorAccess, requireAuthenticated } from "../oauth/helpers";
-import { analyzeMessage } from "./perspective-model";
-import BackgroundAnalysisRouter from "./background-analyzer/router";
+import {
+  hasModeratorAccess,
+  requireAuthenticated,
+  requireModeratorAccess,
+} from "../oauth/helpers";
+import { computeAggregate } from "./aggregate/aggregate-model";
+import { analyzeMessage } from "./analysis-model";
 
 const router = Router();
 
@@ -28,6 +32,30 @@ router.post(
   })
 );
 
-router.use("/analyzer", BackgroundAnalysisRouter);
+router.post(
+  "/aggregate",
+  requireModeratorAccess(),
+  expressAsyncHandler(async (req, res) => {
+    const {
+      guildId,
+      channelId,
+      start,
+      end,
+      intervalUnit,
+      intervalStep,
+      toxicityThreshold,
+    } = req.body;
+    const aggregate = await computeAggregate({
+      guildId,
+      channelId,
+      start,
+      end,
+      intervalUnit,
+      intervalStep,
+      toxicityThreshold,
+    });
+    res.send(aggregate);
+  })
+);
 
 export default router;

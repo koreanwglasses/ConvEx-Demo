@@ -74,7 +74,7 @@ export const ChannelVizGroup = ({
       tickTimeout.current = undefined;
     }
     dispatch(setBaseTime({ groupKey }));
-    tickTimeout.current = setTimeout(startTickLoop, 1000);
+    tickTimeout.current = setTimeout(startTickLoop, 10000);
   }, [dispatch, groupKey]);
 
   const stopTickLoop = useCallback(() => {

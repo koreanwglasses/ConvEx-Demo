@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 import { WritableDraft } from "immer/dist/types/types-external";
-import { Interval, MessageData } from "../../../../common/api-data-types";
+import { MessageData } from "../../../../common/api-data-types";
 import { AppThunk, RootState } from "../../../store";
 import * as MessagesSlice from "../../../data/messages-slice";
 import { useAppDispatch, useAppSelector } from "../../../hooks";
@@ -54,8 +54,8 @@ interface SubState {
 
   toxicityThreshold: number;
 
-  summaryInterval: {
-    interval: Interval;
+  aggregateInterval: {
+    unit: "minute" | "hour";
     step: number;
   };
 }
@@ -76,7 +76,7 @@ const subLayouts = (layouts: Layouts, layoutKey: string, write = true) => {
     b: -10,
 
     baseTime: new Date(Date.now()),
-    timeScale: -32 / (1000 * 60 * 60),
+    timeScale: -50 / (1000 * 60 * 10),
   } as const;
   return (
     layouts[layoutKey] ?? (write ? (layouts[layoutKey] = defaults) : defaults)
@@ -97,9 +97,9 @@ const sub = (state: ChannelVizGroupState, groupKey: string, write = true) => {
 
     toxicityThreshold: 0,
 
-    summaryInterval: {
-      interval: "hour",
-      step: 1,
+    aggregateInterval: {
+      unit: "minute",
+      step: 5,
     },
   } as const;
   return state[groupKey] ?? (write ? (state[groupKey] = defaults) : defaults);
@@ -506,7 +506,7 @@ export const selectLayoutMode = (key: string) => (state: RootState) => {
 
 export const selectBaseTime =
   (groupKey: string, layoutKey?: string) => (state: RootState) => {
-    const { interval, step } = selectSummaryInterval(groupKey)(state);
+    const { unit: interval, step } = selectAggregateInterval(groupKey)(state);
     const layoutData = selectLayoutData(groupKey, layoutKey)(state);
     const timeInterval = getTimeInterval(interval, step);
     return +timeInterval.ceil(layoutData.baseTime);
@@ -620,8 +620,9 @@ export const selectChannelVizGroup =
     };
   };
 
-export const selectSummaryInterval = (groupKey: string) => (state: RootState) =>
-  sub(state.channelVizGroups, groupKey, false).summaryInterval;
+export const selectAggregateInterval =
+  (groupKey: string) => (state: RootState) =>
+    sub(state.channelVizGroups, groupKey, false).aggregateInterval;
 
 ///////////
 // HOOKS //
@@ -639,10 +640,7 @@ export const useOffsets = (
   );
   const messages = useAppSelector(selectMessages(groupKey), deepEqual);
   const offsetFuncs = useAppSelector(selectOffsetFuncs(groupKey));
-  const summaryInterval = useAppSelector(
-    selectSummaryInterval(groupKey),
-    deepEqual
-  );
+  const aggregateInterval = useAppSelector(selectAggregateInterval(groupKey));
 
   const baseTime = useAppSelector(
     selectBaseTime(groupKey, layoutKey),
@@ -667,8 +665,8 @@ export const useOffsets = (
     [
       baseTime,
       layoutData.timeScale,
-      summaryInterval.step,
-      summaryInterval.interval,
+      aggregateInterval.step,
+      aggregateInterval.unit,
     ]
   );
 

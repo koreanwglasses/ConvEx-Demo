@@ -1,7 +1,7 @@
 import * as DiscordBot from "./discord/client";
-import * as PerspectiveClient from "./analysis/perspective-client";
+import * as PerspectiveClient from "./analysis/toxicity/perspective-client";
 import * as Database from "./database";
-import * as BackgroundAnalysis from "./analysis/background-analyzer/analyzer-client";
+import * as BackgroundListener from "./analysis/background-listener";
 import * as Sockets from "./sockets";
 import mongoose from "mongoose";
 import app from "./app";
@@ -16,8 +16,8 @@ import { baseURL } from "./utils";
   console.log("Connecting to database...");
   await Database.init();
 
-  console.log("Starting background analysis...");
-  BackgroundAnalysis.start();
+  console.log("Listening for events to analyze...");
+  BackgroundListener.start();
 
   console.log("Starting server...");
   const { port } = config.server;

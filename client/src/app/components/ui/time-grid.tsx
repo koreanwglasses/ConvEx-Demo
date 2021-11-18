@@ -11,11 +11,11 @@ import { useAppSelector } from "../../hooks";
 import { shallowEqual } from "react-redux";
 import {
   selectLayoutMode,
-  selectSummaryInterval,
+  selectAggregateInterval,
 } from "../../dashboard/channel/channel-viz-group/channel-viz-group-slice";
 import { useVizScrollerGroup } from "../../viz-scroller/viz-scroller-slice";
 import { useMemo } from "react";
-import { getTimeInterval, deepEqual } from "../../../utils";
+import { deepEqual, getTimeInterval } from "../../../utils";
 
 export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
   const { mode } = useAppSelector(selectLayoutMode(groupKey), shallowEqual);
@@ -24,30 +24,22 @@ export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
   const yTime = useTimeScale(groupKey);
   const data = useMessagesOnCanvas(groupKey);
 
-  const { interval: minorInterval, step } = useAppSelector(
-    selectSummaryInterval(groupKey),
+  const { unit: minorUnit, step } = useAppSelector(
+    selectAggregateInterval(groupKey),
     deepEqual
   );
-  const minorTimeInterval = useMemo(
-    () => getTimeInterval(minorInterval, step)!,
-    [minorInterval, step]
+  const minorInterval = useMemo(
+    () => getTimeInterval(minorUnit, 3*step),
+    [minorUnit, step]
   );
 
-  const majorInterval = (
-    { minute: "hour", hour: "day", day: "month" } as const
-  )[minorInterval];
-  const majorTimeInterval = useMemo(
-    () => getTimeInterval(majorInterval),
-    [majorInterval]
-  );
+  const majorUnit = ({ minute: "hour", hour: "day" } as const)[minorUnit];
+  const majorInterval = useMemo(() => getTimeInterval(majorUnit), [majorUnit]);
 
   const minor =
     mode === "time"
       ? timeExtent
-        ? minorTimeInterval.range(
-            new Date(timeExtent[0]),
-            new Date(timeExtent[1])
-          )
+        ? minorInterval.range(new Date(timeExtent[0]), new Date(timeExtent[1]))
         : []
       : d3.sort(
           new d3.InternSet(
@@ -61,8 +53,7 @@ export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
     minor.filter(
       (minorTick, i, array) =>
         i - 1 < 0 ||
-        +majorTimeInterval.floor(minorTick) !==
-          +majorTimeInterval.floor(array[i - 1])
+        +majorInterval.floor(minorTick) !== +majorInterval.floor(array[i - 1])
     )
   );
 
@@ -84,7 +75,7 @@ export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
             i={i}
             yTime={yTime}
             canvasHeight={canvasHeight}
-            format={minorInterval === "minute" ? "%M:%S" : "%I %p"}
+            format={minorUnit === "minute" ? "%M:%S" : "%I %p"}
             stickyTop={15}
             offset={major.has(time) ? 15 : 0}
           />
@@ -97,7 +88,7 @@ export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
           i={i}
           yTime={yTime}
           canvasHeight={canvasHeight}
-          format={majorInterval === "hour" ? "%I %p" : "%b %e"}
+          format={majorUnit === "hour" ? "%I %p" : "%b %e"}
           stickyTop={0}
           offset={0}
         />

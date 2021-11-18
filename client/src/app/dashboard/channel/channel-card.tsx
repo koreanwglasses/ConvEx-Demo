@@ -33,7 +33,7 @@ import {
 } from "./channel-viz-group/channel-viz-group-slice";
 import { CompactChatView } from "./compact-chat-view";
 import { Draggable } from "react-beautiful-dnd";
-import { AnalysisSummary } from "./analysis-summary";
+import { AnalysisSummary } from "./aggregates";
 
 type ChartType = "CompactChatView" | "AnalysisBars" | "AnalysisSummary";
 export const ChannelCard = ({

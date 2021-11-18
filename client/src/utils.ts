@@ -1,6 +1,5 @@
 import { to } from "await-to-js";
 import * as d3 from "d3";
-import { Interval } from "./common/api-data-types";
 
 const removeUndefined = (obj: any) => {
   return Object.fromEntries(
@@ -66,10 +65,9 @@ export function deepEqual(depth_left?: number | unknown, right?: unknown) {
   }
 }
 
-export const getTimeInterval = (interval: Interval | "month", step = 1) =>
+export const getTimeInterval = (unit: "minute" | "hour" | "day", step = 1) =>
   ({
     minute: d3.timeMinute,
     hour: d3.timeHour,
     day: d3.timeDay,
-    month: d3.timeMonth,
-  }[interval].every(step) as d3.TimeInterval);
+  }[unit].every(step) as d3.TimeInterval);
