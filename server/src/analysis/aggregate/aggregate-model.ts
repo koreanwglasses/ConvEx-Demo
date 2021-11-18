@@ -1,6 +1,6 @@
 import { AnalysisRecord } from "../analysis-model";
 import { AggregateData, AnalysisData } from "../../common/api-data-types";
-import { getTimeInterval } from "../../common/utils";
+import { getTimeInterval } from "../../utils2";
 
 export const computeAggregate = async ({
   guildId,
