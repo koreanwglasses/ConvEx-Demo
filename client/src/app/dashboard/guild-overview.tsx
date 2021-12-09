@@ -93,7 +93,7 @@ const GuildOverview = () => {
                       gap: 0.75,
                       p: 1,
                       flexShrink: 0,
-                      width: 339,
+                      width: 340,
                     }}
                     ref={provided.innerRef}
                     {...provided.droppableProps}

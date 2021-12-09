@@ -18,6 +18,7 @@ import { UserData } from "../../common/api-data-types";
 import { Divider, Typography, Link, Breadcrumbs } from "@mui/material";
 import { selectGuildById } from "../data/guilds-slice";
 import { NavigateNext } from "@mui/icons-material";
+import GuildSettings from "./guild-settings";
 
 const useStyles = makeStyles({
   toolbarTitle: {
@@ -68,6 +69,7 @@ const DashboardTitle = () => {
                   sx={{ width: 28, height: 28 }}
                 />
                 <Typography>{guildData?.name}</Typography>
+                <GuildSettings guildId={guildId} />
               </Box>
             )}
           </Breadcrumbs>

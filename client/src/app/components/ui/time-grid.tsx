@@ -45,7 +45,7 @@ export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
           new d3.InternSet(
             data
               ?.map(([msg]) => new Date(msg.createdTimestamp))
-              .map((date) => d3.timeHour.floor(date)) ?? []
+              .map((date) => (minorUnit === "hour" ? d3.timeHour : d3.timeMinute).floor(date)) ?? []
           )
         );
 
@@ -60,7 +60,7 @@ export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
   return (
     <>
       {minor.map((time, i, array) => (
-        <>
+        <span key={+time}>
           <Box
             sx={{
               position: "absolute",
@@ -79,11 +79,12 @@ export const TimeGrid = ({ groupKey }: { groupKey: string }) => {
             stickyTop={15}
             offset={major.has(time) ? 15 : 0}
           />
-        </>
+        </span>
       ))}
 
       {[...major].map((time, i, array) => (
         <TimeLabel
+          key={+time}
           array={array}
           i={i}
           yTime={yTime}

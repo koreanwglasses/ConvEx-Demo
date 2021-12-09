@@ -1,6 +1,7 @@
 import express from "express";
 import DiscordRouter from "./discord/router";
 import AnalysisRouter from "./analysis/router";
+import OptionsRouter from "./options/router";
 import AuthRouter from "./oauth/router";
 import session from "express-session";
 import config from "./config";
@@ -44,6 +45,7 @@ app.get("/invite", (req, res) => {
 
 app.use("/api", DiscordRouter);
 app.use("/api", AnalysisRouter);
+app.use("/api/options", OptionsRouter);
 
 app.use(express.static(resolve(__dirname, "../public")));
 app.get("*", (req, res) => {
