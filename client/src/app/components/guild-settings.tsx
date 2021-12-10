@@ -10,21 +10,16 @@ import {
   Tooltip,
 } from "@mui/material";
 import { Check, ReportProblem, Settings } from "@mui/icons-material";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Form } from "./styled";
-import { fetchJSON } from "../../utils";
+import { useOptions, setOptions } from "../data/options-slice";
+import { useAppDispatch } from "../hooks";
 
 const GuildSettings = ({ guildId }: { guildId: string }) => {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  const [initialValues, setInitialValues] = useState<{ keywords: string[] }>();
-  useEffect(() => {
-    (async () => {
-      const [, val] = await fetchJSON("/api/options/guild", { guildId });
-      setInitialValues(val);
-    })();
-  }, [guildId]);
+  const initialValues = useOptions(guildId);
 
   return (
     <Box>
@@ -59,6 +54,8 @@ const SettingsForm = ({
   const [waiting, setWaiting] = useState(false);
   const [err, setErr] = useState<Error | null>(null);
 
+  const dispatch = useAppDispatch();
+
   return (
     <Form
       sx={{
@@ -76,12 +73,11 @@ const SettingsForm = ({
 
         setWaiting(true);
         setErr(null);
-        const [err] = await fetchJSON("/api/options/guild", {
-          guildId,
-          options: {
+        const err = await dispatch(
+          setOptions(guildId, {
             keywords: (data.keywords as string).split(" ").filter((s) => s),
-          },
-        });
+          })
+        );
         if (err) setErr(err as Error);
         setWaiting(false);
       }}

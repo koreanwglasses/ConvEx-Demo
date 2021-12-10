@@ -9,6 +9,7 @@ import analyses from "./data/analyses-slice";
 import aggregates from "./data/aggregates-slice";
 import vizScrollers from "./viz-scroller/viz-scroller-slice";
 import channelVizGroups from "./dashboard/channel/channel-viz-group/channel-viz-group-slice";
+import options from "./data/options-slice";
 
 export const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ export const store = configureStore({
     aggregates,
     vizScrollers,
     channelVizGroups,
+    options
   },
   middleware: [thunk] as const,
 });
