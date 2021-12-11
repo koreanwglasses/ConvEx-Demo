@@ -6,6 +6,7 @@ import {
   MemberData,
   MessageData,
 } from "../../../common/api-data-types";
+import { Span } from "../styled";
 
 export const CompactMessageGroupBase = ({
   messages,
@@ -92,10 +93,12 @@ export const CompactMessageViewBase = React.forwardRef(
       message,
       threshold,
       analysis,
+      keywords = [],
     }: {
       message: MessageData;
       analysis?: AnalysisData | null;
       threshold: number;
+      keywords?: string[];
     },
     ref
   ) => {
@@ -106,6 +109,37 @@ export const CompactMessageViewBase = React.forwardRef(
 
     const hasEmbed = message.embeds.length;
     const hasAttachment = Object.values(message.attachments).length;
+
+    // Compute where to put highlights
+    let x: (string | number)[] = [message.content];
+    while (true) {
+      const y = x[x.length - 1];
+      if (typeof y !== "string") break;
+
+      const match = y.match("\\b" + keywords.join("\\b|\\b") + "\\b");
+      if (!match) break;
+
+      x.pop();
+      x.push(
+        y.slice(0, match.index!),
+        1,
+        y.slice(match.index!, match.index! + match[0].length),
+        -1,
+        y.slice(match.index! + match[0].length)
+      );
+    }
+
+    let groups: any[] = [{ highlight: false, text: "" }];
+    let i = 0;
+    for (const item of x) {
+      if (typeof item === "string") {
+        groups[groups.length - 1].text += item;
+      } else {
+        if (i === 0) groups.push({ highlight: true, text: "" });
+        i += item;
+        if (i === 0) groups.push({ highlight: false, text: "" });
+      }
+    }
 
     return (
       <Box
@@ -134,7 +168,11 @@ export const CompactMessageViewBase = React.forwardRef(
             <br />
           </>
         ) : null}
-        {message.content}
+        {groups.map(({ highlight, text }, i) => (
+          <Span key={i} sx={{ bgcolor: highlight ? "yellow" : undefined, color: highlight ? "black" : undefined }}>
+            {text}
+          </Span>
+        ))}
       </Box>
     );
   }

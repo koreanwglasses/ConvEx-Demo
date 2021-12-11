@@ -26,6 +26,7 @@ import {
   CompactMessageViewBase,
 } from "../../components/ui/compact-chat-view-base";
 import { deepEqual } from "../../../utils";
+import { useOptions } from "../../data/options-slice";
 
 export const CompactChatView = ({
   hidden = false,
@@ -273,6 +274,9 @@ const CompactMessageView = ({
     shallowEqual
   );
 
+  const { guildId } = useChannelVizGroup(groupKey);
+  const { keywords } = useOptions(guildId) ?? {};
+
   const ref = useRef<HTMLDivElement>(null);
 
   const dispatch = useAppDispatch();
@@ -313,6 +317,7 @@ const CompactMessageView = ({
         message={message}
         analysis={analysis}
         threshold={threshold}
+        keywords={keywords}
         ref={ref}
       />
       {/* <Box
